@@ -55,6 +55,7 @@ function addGarminWizard() {
 
     // Create buttons to expand and collapse all tables
     var expandButton = document.createElement('button');
+    expandButton.classList.add("button button--info");
     expandButton.textContent = 'Expand All';
     expandButton.addEventListener('click', expandAll);
 
