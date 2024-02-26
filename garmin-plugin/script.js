@@ -16,7 +16,7 @@ function initializeDatabase()
 {
     initSqlJs(config).then(function (SQL) {
         console.log("sql.js initialized 🎉");
-        fetch('products.db?v=2')
+        fetch('products.db?v=3')
         .then(response => response.arrayBuffer())
         .then(buffer => {
             // Create a new database
