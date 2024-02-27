@@ -7,6 +7,7 @@ sidebar_position: 3
 
     These watches had a total of <span id="specificationCountPlaceholder"></span> specifications to choose
     between.
+
 <div id="garmin">
 </div>
 

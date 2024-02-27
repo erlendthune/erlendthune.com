@@ -30,6 +30,7 @@ function addGarminWizard() {
     var result = db.exec("SELECT specGroupKeyDisplayName, specKey, specValue, specDisplayName, specDisplayValue FROM products GROUP BY specGroupKeyDisplayName, specKey, specValue ORDER BY specGroupKeyDisplayName, specKey");
 
     // Generate HTML elements for product specs
+    // An element with the id "garmin" must be present in the DOM.
     var container = document.getElementById("garmin");
     //container.classList.add('container');
 
@@ -51,15 +52,24 @@ function addGarminWizard() {
 
     // Create buttons to expand and collapse all tables
     var expandButton = document.createElement('button');
+    expandButton.classList.add("button");
+    expandButton.classList.add("button--info");
     expandButton.textContent = 'Expand All';
     expandButton.addEventListener('click', expandAll);
 
     var collapseButton = document.createElement('button');
+    collapseButton.classList.add("button");
+    collapseButton.classList.add("button--info");
     collapseButton.textContent = 'Collapse All';
     collapseButton.addEventListener('click', collapseAll);
 
     // Append buttons to the container
+
+    var space = document.createElement("span");
+    space.style.marginRight = "10px"; // Adjust the margin as needed for your layout
+
     container.appendChild(expandButton);
+    container.appendChild(space);
     container.appendChild(collapseButton);
     container.appendChild(document.createElement('br')); // Add line break
 
@@ -101,12 +111,15 @@ function addGarminWizard() {
         specs.forEach(spec => {
             var row = document.createElement('tr');
             var cell1 = document.createElement('td');
-            var cell2 = document.createElement('td');
+
+            // If you want the specKey as a separate column, uncomment this and below.
+            //var cell2 = document.createElement('td');
             var cell3 = document.createElement('td');
             var cell4 = document.createElement('td');
             var cell5 = document.createElement('td');
             cell5.setAttribute('id', spec.speckey)
             var checkbox = document.createElement('input');
+            checkbox.classList.add("garmin-checkbox");
             checkbox.type = 'checkbox';
             checkbox.value = spec.speckey;
             checkbox.setAttribute('data-group', groupName); // Assigning the data-group attribute
@@ -121,11 +134,15 @@ function addGarminWizard() {
             });
         
             cell1.appendChild(checkbox);
-            cell2.innerHTML = spec.speckey; // Use innerHTML instead of textContent
-            cell3.innerHTML = spec.specdisplayname; // Use innerHTML instead of textContent
-            cell4.innerHTML = spec.specdisplayvalue; // Use innerHTML instead of textContent
+
+            // Uncomment to get specKey in separate column
+            // cell2.innerHTML = spec.speckey;
+            cell3.innerHTML = spec.specdisplayname;
+            cell4.innerHTML = spec.specdisplayvalue;
             row.appendChild(cell1);
-            row.appendChild(cell2);
+            
+            // Uncomment to get specKey in separate column
+            // row.appendChild(cell2);
             row.appendChild(cell3);
             row.appendChild(cell4);
             row.appendChild(cell5);
