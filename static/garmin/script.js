@@ -96,7 +96,8 @@ function addGarminWizard() {
             var cell4 = document.createElement('td');
 
             var cell4ResultTitle = document.createElement('div');
-            var specDisplayValue = document.createTextNode(spec.specdisplayvalue);
+            var specDisplayValue = document.createElement('div');
+            specDisplayValue.innerHTML = spec.specdisplayvalue; 
             cell4ResultTitle.appendChild(specDisplayValue);
             cell4ResultTitle.classList.add('garmintitle-without-content');
 
