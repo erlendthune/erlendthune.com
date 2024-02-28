@@ -131,6 +131,7 @@ function addGarminWizard() {
                 } else {
                     ClearCell(cell5, spec.speckey);
                 }
+                PopulateMatchingProductResults();
             });
         
             cell1.appendChild(checkbox);
@@ -160,91 +161,6 @@ function addGarminWizard() {
         contentWrapper.appendChild(table);
         contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
     });
-
-    // Create a result container to display matching products
-    var resultContainer = document.createElement('div');
-    resultContainer.classList.add('result-container');
-    container.appendChild(resultContainer);
-    
-    // Create a button to perform the lookup
-    var button = document.createElement('button');
-    button.textContent = 'Lookup Products';
-    button.addEventListener('click', function() {
-        // Get the checked speckeys
-        const checkedSpecs = {};
-        document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-            const group = checkbox.getAttribute('data-group');
-            if (!checkedSpecs[group]) {
-                checkedSpecs[group] = {};
-            }
-
-            const speckey = checkbox.value;
-            if (!checkedSpecs[group][speckey]) {
-                checkedSpecs[group][speckey] = [];
-            }
-            checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
-        });
-
-        // Generate the query
-        let query = '';
-        let numberOfUniqueSpecs = 0
-        Object.values(checkedSpecs).forEach((spec, groupIndex) => {
-            if (groupIndex > 0) {
-                query += ' OR ';
-            }
-
-            query += '(';
-            Object.entries(spec).forEach(([speckey, values], specIndex) => 
-            {
-                numberOfUniqueSpecs++;
-                if(specIndex > 0) {
-                    query += ' OR ';
-                }
-                values.forEach((value, index) => 
-                {
-                    if (index > 0) {
-                        query += ' OR ';
-                    }
-                    query += `(specKey = '${speckey}' AND specValue = '${value}')`;
-                });
-            });
-            query += ')';
-        });
-
-        // Execute the query
-        const sqlQuery = `
-            SELECT productId, displayName, productUrl
-            FROM products
-            WHERE ${query}
-            GROUP BY displayName
-            HAVING COUNT(specKey) = ${numberOfUniqueSpecs};
-        `;
-
-        // Use sqlQuery in the fetch call to get the desired results
-        console.log(sqlQuery);
-        var matchingProducts = db.exec(sqlQuery);
-        
-        // Clear previous results
-        resultContainer.innerHTML = '';
-        if(matchingProducts.length == 0)
-        {
-            resultContainer.innerHTML = 'Could not find any matching products';
-        }
-        else
-        {
-            var resultText = document.createElement('p');
-            resultText.innerHTML = "<h4>Matching Products:</h4>";
-            matchingProducts[0].values.forEach(row => {
-                resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
-            });
-        
-            resultContainer.appendChild(resultText);
-        }
-    });
-    container.appendChild(button);
-
-    // Append the container to the document body
-    //document.body.appendChild(container);
 }
 
 
@@ -308,6 +224,89 @@ function PopulateCellWithProducts(element, speckey, specvalue) {
     result[0].values.forEach(row => {
         element.innerHTML += `<a target="_blank" href="${row[1]}">${row[0]}</a> `;
     });
+}
+
+function PopulateMatchingProductResults() 
+{
+    // Create a result container to display matching products
+    var resultContainer = document.getElementById('garmin-result');
+    resultContainer.innerHTML = '';
+
+    // Get the checked speckeys
+    const checkedSpecs = {};
+    var selectedCheckBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
+
+    if(selectedCheckBoxes.length == 0) {
+        return;
+    }
+
+    selectedCheckBoxes.forEach(checkbox => {
+        const group = checkbox.getAttribute('data-group');
+        if (!checkedSpecs[group]) {
+            checkedSpecs[group] = {};
+        }
+
+        const speckey = checkbox.value;
+        if (!checkedSpecs[group][speckey]) {
+            checkedSpecs[group][speckey] = [];
+        }
+        checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
+    });
+
+    // Generate the query
+    let query = '';
+    let numberOfUniqueSpecs = 0
+    Object.values(checkedSpecs).forEach((spec, groupIndex) => {
+        if (groupIndex > 0) {
+            query += ' OR ';
+        }
+
+        query += '(';
+        Object.entries(spec).forEach(([speckey, values], specIndex) => 
+        {
+            numberOfUniqueSpecs++;
+            if(specIndex > 0) {
+                query += ' OR ';
+            }
+            values.forEach((value, index) => 
+            {
+                if (index > 0) {
+                    query += ' OR ';
+                }
+                query += `(specKey = '${speckey}' AND specValue = '${value}')`;
+            });
+        });
+        query += ')';
+    });
+
+    // Execute the query
+    const sqlQuery = `
+        SELECT productId, displayName, productUrl
+        FROM products
+        WHERE ${query}
+        GROUP BY displayName
+        HAVING COUNT(specKey) = ${numberOfUniqueSpecs};
+    `;
+
+    // Use sqlQuery in the fetch call to get the desired results
+    console.log(sqlQuery);
+    var matchingProducts = db.exec(sqlQuery);
+    
+    // Clear previous results
+    resultContainer.innerHTML = '';
+    if(matchingProducts.length == 0)
+    {
+        resultContainer.innerHTML = 'Could not find any matching products';
+    }
+    else
+    {
+        var resultText = document.createElement('p');
+        matchingProducts[0].values.forEach(row => {
+            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
+        });
+    
+        resultContainer.appendChild(resultText);
+    }
 }
 
 function ClearCell(element, speckey) {

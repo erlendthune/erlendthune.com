@@ -30,6 +30,24 @@
 }
 
 /* Garmin */
+
+.wrap {
+  display: flex;
+}
+
+.left {
+  flex-basis: 80%;
+  height: 50vh; 
+  overflow: auto;
+}
+
+.right {
+  flex-basis: 20%;
+  height: 50vh; 
+  overflow: auto;
+  padding-left: 20px;
+}
+
 .column {
   flex: 1;
   padding: 10px;
