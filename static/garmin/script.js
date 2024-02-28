@@ -50,28 +50,7 @@ function addGarminWizard() {
         groupedSpecs[spec.SpecGroupKeyDisplayName].push(spec);
     });
 
-    // Create buttons to expand and collapse all tables
-    var expandButton = document.createElement('button');
-    expandButton.classList.add("button");
-    expandButton.classList.add("button--info");
-    expandButton.textContent = 'Expand All';
-    expandButton.addEventListener('click', expandAll);
-
-    var collapseButton = document.createElement('button');
-    collapseButton.classList.add("button");
-    collapseButton.classList.add("button--info");
-    collapseButton.textContent = 'Collapse All';
-    collapseButton.addEventListener('click', collapseAll);
-
-    // Append buttons to the container
-
-    var space = document.createElement("span");
-    space.style.marginRight = "10px"; // Adjust the margin as needed for your layout
-
-    container.appendChild(expandButton);
-    container.appendChild(space);
-    container.appendChild(collapseButton);
-    container.appendChild(document.createElement('br')); // Add line break
+    CreateButtonsToExpandAndCollapseAllTables();
 
     // Iterate over the grouped specs and create HTML elements
     let previousSpeckey = null; // Variable to track the previous speckey
@@ -112,12 +91,30 @@ function addGarminWizard() {
             var row = document.createElement('tr');
             var cell1 = document.createElement('td');
 
-            // If you want the specKey as a separate column, uncomment this and below.
-            //var cell2 = document.createElement('td');
             var cell3 = document.createElement('td');
+
             var cell4 = document.createElement('td');
-            var cell5 = document.createElement('td');
-            cell5.setAttribute('id', spec.speckey)
+
+            var cell4ResultTitle = document.createElement('div');
+            var specDisplayValue = document.createTextNode(spec.specdisplayvalue);
+            cell4ResultTitle.appendChild(specDisplayValue);
+            cell4ResultTitle.classList.add('garmintitle-without-content');
+
+            var cell4Result = document.createElement('div');
+            cell4Result.classList.add('content');
+            cell4Result.classList.add('garmincollapsed');
+
+            cell4.appendChild(cell4ResultTitle);
+            cell4.appendChild(cell4Result);
+
+            cell4ResultTitle.addEventListener('click', function () {
+                const content = this.nextElementSibling;
+                content.classList.toggle('garminexpanded');
+                content.classList.toggle('garmincollapsed');
+                // Toggle class for rotating the arrow
+                this.classList.toggle('garmin-expanded-arrow');
+            });
+
             var checkbox = document.createElement('input');
             checkbox.classList.add("garmin-checkbox");
             checkbox.type = 'checkbox';
@@ -126,27 +123,27 @@ function addGarminWizard() {
             checkbox.setAttribute('data-value', spec.specvalue);
             checkbox.addEventListener('change', function() {
                 updateBadgeCount(groupName); // Update badge count when checkbox state changes
+
                 if (checkbox.checked) {
-                    PopulateCellWithProducts(cell5, spec.speckey, spec.specvalue);
+                    cell4ResultTitle.classList.remove('garmintitle-without-content');
+                    cell4ResultTitle.classList.add('garmintitle-with-content');
+                    PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
                 } else {
-                    ClearCell(cell5, spec.speckey);
+                    cell4ResultTitle.classList.add('garmintitle-without-content');
+                    cell4ResultTitle.classList.remove('garmintitle-with-content');
+                    ClearCell(cell4Result, spec.speckey);
                 }
                 PopulateMatchingProductResults();
             });
         
             cell1.appendChild(checkbox);
-
-            // Uncomment to get specKey in separate column
-            // cell2.innerHTML = spec.speckey;
             cell3.innerHTML = spec.specdisplayname;
-            cell4.innerHTML = spec.specdisplayvalue;
             row.appendChild(cell1);
             
             // Uncomment to get specKey in separate column
             // row.appendChild(cell2);
             row.appendChild(cell3);
             row.appendChild(cell4);
-            row.appendChild(cell5);
 
             // Apply alternating background color based on speckey
             if (previousSpeckey !== spec.speckey) {
@@ -163,6 +160,30 @@ function addGarminWizard() {
     });
 }
 
+function CreateButtonsToExpandAndCollapseAllTables()
+{
+    var expandButton = document.createElement('button');
+    expandButton.classList.add("button");
+    expandButton.classList.add("button--info");
+    expandButton.textContent = 'Expand All';
+    expandButton.addEventListener('click', expandAll);
+
+    var collapseButton = document.createElement('button');
+    collapseButton.classList.add("button");
+    collapseButton.classList.add("button--info");
+    collapseButton.textContent = 'Collapse All';
+    collapseButton.addEventListener('click', collapseAll);
+
+    // Append buttons to the container
+
+    var space = document.createElement("span");
+    space.style.marginRight = "10px"; // Adjust the margin as needed for your layout
+
+    var expandAllButton = document.getElementById('expand-all-button');
+    expandAllButton.appendChild(expandButton);
+    var collapseAllButton = document.getElementById('collapse-all-button');
+    collapseAllButton.appendChild(collapseButton);
+}
 
 // Function to expand all tables
 function expandAll() {

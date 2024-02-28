@@ -35,6 +35,15 @@
   display: flex;
 }
 
+.left-title {
+  flex-basis: 80%;
+}
+
+.right-title {
+  flex-basis: 20%;
+  padding-left: 20px;
+}
+
 .left {
   flex-basis: 80%;
   height: 50vh; 
@@ -62,6 +71,21 @@
   font-size: 1.2em;
   margin-bottom: 10px;
   cursor: pointer; /* Add cursor pointer to indicate clickable */
+}
+
+.garmintitle-without-content {
+}
+
+.garmintitle-with-content {
+  cursor: pointer; /* Add cursor pointer to indicate clickable */
+}
+
+/* Styling for arrow indicator */
+.garmintitle-with-content::after {
+  content: "\25B8"; /* Right-facing triangle arrow */
+  display: inline-block;
+  margin-left: 5px;
+  transition: transform 0.3s; /* Smooth transition for rotation */
 }
 
 /* Styling for arrow indicator */

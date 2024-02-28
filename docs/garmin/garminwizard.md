@@ -9,15 +9,20 @@ sidebar_position: 3
     between.
 
   <div class="wrap">
-    <div class="left">
-        <h4>Matching products</h4>
-        <div id="garmin"></div>
+    <div id="left-title" class="left-title">
+        
+        <h4 id="requirements-title">Requirements <span id="expand-all-button"/> <spand id="collapse-all-button"/></h4>
+        <div class="left">
+            <div id="garmin"></div>
+        </div>
     </div>
-    <div class="right">
-      <div>
+    <div class="right-title">
         <h4>Matching products</h4>
-        <div id="garmin-result"></div>
-      </div>
+        <div class="right">
+        <div>
+            <div id="garmin-result"></div>
+        </div>
+        </div>
     </div>
   </div>
 
