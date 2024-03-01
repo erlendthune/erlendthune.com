@@ -116,15 +116,10 @@ function addGarminWizard() {
                 this.classList.toggle('garmin-expanded-arrow');
             });
 
-            var checkbox = document.createElement('input');
-            checkbox.classList.add("garmin-checkbox");
-            checkbox.type = 'checkbox';
-            checkbox.value = spec.speckey;
-            checkbox.setAttribute('data-group', groupName); // Assigning the data-group attribute
-            checkbox.setAttribute('data-value', spec.specvalue);
+            var checkbox = CreateCheckbox(spec.speckey, spec.specvalue, groupName);
             checkbox.addEventListener('change', function() {
                 updateBadgeCount(groupName); // Update badge count when checkbox state changes
-
+        
                 if (checkbox.checked) {
                     cell4ResultTitle.classList.remove('garmintitle-without-content');
                     cell4ResultTitle.classList.add('garmintitle-with-content');
@@ -136,6 +131,7 @@ function addGarminWizard() {
                 }
                 PopulateMatchingProductResults();
             });
+        
         
             cell1.appendChild(checkbox);
             cell3.innerHTML = spec.specdisplayname;
@@ -159,6 +155,16 @@ function addGarminWizard() {
         contentWrapper.appendChild(table);
         contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
     });
+}
+
+function CreateCheckbox(key, value, groupName) {
+    var checkbox = document.createElement('input');
+    checkbox.classList.add("garmin-checkbox");
+    checkbox.type = 'checkbox';
+    checkbox.value = key;
+    checkbox.setAttribute('data-group', groupName); // Assigning the data-group attribute
+    checkbox.setAttribute('data-value', value);
+    return checkbox;     
 }
 
 function CreateButtonsToExpandAndCollapseAllTables()
