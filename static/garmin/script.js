@@ -1,13 +1,13 @@
+//Requires that an element with the id=garmin is present in the DOM.
+
 // Load sql.js WebAssembly file
 let config = {
     locateFile: () => "/garmin/sql-wasm.wasm",
 };
 
-
-
 var db = null;
+var invertSpecificationRequirements = false;
 
-//Requires that an element with the id=garmin is present in the DOM.
 function startGarminWizard()
 {
     initSqlJs(config).then(function (SQL) {
@@ -29,12 +29,135 @@ function addGarminWizard() {
     // Execute a query to retrieve distinct product specs
     var result = db.exec("SELECT specGroupKeyDisplayName, specKey, specValue, specDisplayName, specDisplayValue FROM products GROUP BY specGroupKeyDisplayName, specKey, specValue ORDER BY specGroupKeyDisplayName, specKey");
 
-    // Generate HTML elements for product specs
-    // An element with the id "garmin" must be present in the DOM.
-    var container = document.getElementById("garmin");
-    //container.classList.add('container');
+    groupedSpecs = groupProductSpecsBySpecGroupKeyDisplayName(result);
 
-    // Group product specs by SpecGroupKeyDisplayName
+    createCheckboxToExpandAndCollapseAllTables();
+    //createCheckboxToInvertSpecificationRequirements();
+
+    iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs);
+}
+
+// Generate HTML elements for product specs
+// An element with the id "garmin" must be present in the DOM.
+function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
+{
+    var container = document.getElementById("garmin");
+
+    let previousSpeckey = null; // Variable to track the previous speckey
+    let colorIndex = 0; // Index for alternating background colors
+    let rowId = 0;
+
+    Object.entries(groupedSpecs).forEach(([groupName, specs]) => {
+        var titleElement = document.createElement('h3');
+        titleElement.textContent = groupName;
+        titleElement.classList.add("garmintitle");
+    
+        var badge = document.createElement('span');
+        badge.style.display = 'none'; // Hide the badge
+        badge.classList.add('garminbadge');
+        badge.textContent = '0';
+        badge.setAttribute('data-group', groupName); // Assigning the data-group attribute
+    
+        titleElement.appendChild(badge);
+        
+        titleElement.addEventListener('click', function () {
+            const content = this.nextElementSibling;
+            content.classList.toggle('garminexpanded');
+            content.classList.toggle('garmincollapsed');
+            // Toggle class for rotating the arrow
+            this.classList.toggle('garmin-expanded-arrow');
+        });
+    
+        container.appendChild(titleElement);
+    
+        // Add div to wrap content
+        var contentWrapper = document.createElement('div');
+        contentWrapper.classList.add('garmincollapsed');
+        contentWrapper.classList.add('content');
+        container.appendChild(contentWrapper);
+    
+        var table = document.createElement('table');
+        var tbody = document.createElement('tbody');
+        specs.forEach(spec => {
+            rowId++;
+            var row = document.createElement('tr');
+            var cell1 = document.createElement('td');
+    
+            var cell3 = document.createElement('td');
+    
+            var cell4 = document.createElement('td');
+    
+            var cell4ResultTitle = document.createElement('div');
+            var specDisplayValue = document.createElement('div');
+            specDisplayValue.innerHTML = spec.specdisplayvalue; 
+            cell4ResultTitle.appendChild(specDisplayValue);
+            cell4ResultTitle.classList.add('garmintitle-without-content');
+    
+            var cell4Result = document.createElement('div');
+            cell4Result.setAttribute("id", "row" + rowId + "resultCell");
+            cell4Result.classList.add('garmincollapsed');
+
+            var cell4InvertedResult = document.createElement('div');
+            cell4InvertedResult.setAttribute("id", "row" + rowId + "invertedResultCell");
+            cell4InvertedResult.classList.add('garmincollapsed');
+
+            cell4.appendChild(cell4ResultTitle);
+            cell4.appendChild(cell4Result);
+            cell4.appendChild(cell4InvertedResult);
+    
+            cell4ResultTitle.addEventListener('click', function () {
+                const content = this.nextElementSibling;
+                content.classList.toggle('garminexpanded');
+                content.classList.toggle('garmincollapsed');
+                // Toggle class for rotating the arrow
+                this.classList.toggle('garmin-expanded-arrow');
+            });
+    
+            var checkbox = CreateCheckbox(spec.speckey, spec.specvalue, groupName);
+            checkbox.addEventListener('change', function() {
+                updateBadgeCount(groupName); // Update badge count when checkbox state changes
+        
+                if (checkbox.checked) {
+                    cell4ResultTitle.classList.remove('garmintitle-without-content');
+                    cell4ResultTitle.classList.add('garmintitle-with-content');
+                    PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
+                    PopulateCellWithInvertedProducts(cell4InvertedResult, spec.speckey, spec.specvalue);
+                } else {
+                    cell4ResultTitle.classList.add('garmintitle-without-content');
+                    cell4ResultTitle.classList.remove('garmintitle-with-content');
+                    ClearCell(cell4Result);
+                    ClearCell(cell4InvertedResult);
+                }
+                PopulateMatchingProductResults();
+            });
+        
+        
+            cell1.appendChild(checkbox);
+            cell3.innerHTML = spec.specdisplayname;
+            row.appendChild(cell1);
+            
+            // Uncomment to get specKey in separate column
+            // row.appendChild(cell2);
+            row.appendChild(cell3);
+            row.appendChild(cell4);
+    
+            // Apply alternating background color based on speckey
+            if (previousSpeckey !== spec.speckey) {
+                colorIndex = 1 - colorIndex; // Toggle color index
+            }
+            row.style.backgroundColor = colorIndex === 0 ? '#aaf0aa' : '#00e000'; // Apply color
+            previousSpeckey = spec.speckey; // Update previous speckey
+    
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        contentWrapper.appendChild(table);
+        contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
+    });
+}
+
+function groupProductSpecsBySpecGroupKeyDisplayName(result) {
+
     var groupedSpecs = {};
     result[0].values.forEach(row => {
         var spec = {
@@ -49,117 +172,13 @@ function addGarminWizard() {
         }
         groupedSpecs[spec.SpecGroupKeyDisplayName].push(spec);
     });
-
-    CreateButtonsToExpandAndCollapseAllTables();
-
-    // Iterate over the grouped specs and create HTML elements
-    let previousSpeckey = null; // Variable to track the previous speckey
-    let colorIndex = 0; // Index for alternating background colors
-
-    Object.entries(groupedSpecs).forEach(([groupName, specs]) => {
-        var titleElement = document.createElement('h3');
-        titleElement.textContent = groupName;
-        titleElement.classList.add("garmintitle");
-
-        var badge = document.createElement('span');
-        badge.style.display = 'none'; // Hide the badge
-        badge.classList.add('garminbadge');
-        badge.textContent = '0';
-        badge.setAttribute('data-group', groupName); // Assigning the data-group attribute
-
-        titleElement.appendChild(badge);
-        
-        titleElement.addEventListener('click', function () {
-            const content = this.nextElementSibling;
-            content.classList.toggle('garminexpanded');
-            content.classList.toggle('garmincollapsed');
-            // Toggle class for rotating the arrow
-            this.classList.toggle('garmin-expanded-arrow');
-        });
-
-        container.appendChild(titleElement);
-
-        // Add div to wrap content
-        var contentWrapper = document.createElement('div');
-        contentWrapper.classList.add('garmincollapsed');
-        contentWrapper.classList.add('content');
-        container.appendChild(contentWrapper);
-
-        var table = document.createElement('table');
-        var tbody = document.createElement('tbody');
-        specs.forEach(spec => {
-            var row = document.createElement('tr');
-            var cell1 = document.createElement('td');
-
-            var cell3 = document.createElement('td');
-
-            var cell4 = document.createElement('td');
-
-            var cell4ResultTitle = document.createElement('div');
-            var specDisplayValue = document.createElement('div');
-            specDisplayValue.innerHTML = spec.specdisplayvalue; 
-            cell4ResultTitle.appendChild(specDisplayValue);
-            cell4ResultTitle.classList.add('garmintitle-without-content');
-
-            var cell4Result = document.createElement('div');
-            cell4Result.classList.add('content');
-            cell4Result.classList.add('garmincollapsed');
-
-            cell4.appendChild(cell4ResultTitle);
-            cell4.appendChild(cell4Result);
-
-            cell4ResultTitle.addEventListener('click', function () {
-                const content = this.nextElementSibling;
-                content.classList.toggle('garminexpanded');
-                content.classList.toggle('garmincollapsed');
-                // Toggle class for rotating the arrow
-                this.classList.toggle('garmin-expanded-arrow');
-            });
-
-            var checkbox = CreateCheckbox(spec.speckey, spec.specvalue, groupName);
-            checkbox.addEventListener('change', function() {
-                updateBadgeCount(groupName); // Update badge count when checkbox state changes
-        
-                if (checkbox.checked) {
-                    cell4ResultTitle.classList.remove('garmintitle-without-content');
-                    cell4ResultTitle.classList.add('garmintitle-with-content');
-                    PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
-                } else {
-                    cell4ResultTitle.classList.add('garmintitle-without-content');
-                    cell4ResultTitle.classList.remove('garmintitle-with-content');
-                    ClearCell(cell4Result, spec.speckey);
-                }
-                PopulateMatchingProductResults();
-            });
-        
-        
-            cell1.appendChild(checkbox);
-            cell3.innerHTML = spec.specdisplayname;
-            row.appendChild(cell1);
-            
-            // Uncomment to get specKey in separate column
-            // row.appendChild(cell2);
-            row.appendChild(cell3);
-            row.appendChild(cell4);
-
-            // Apply alternating background color based on speckey
-            if (previousSpeckey !== spec.speckey) {
-                colorIndex = 1 - colorIndex; // Toggle color index
-            }
-            row.style.backgroundColor = colorIndex === 0 ? '#aaf0aa' : '#00e000'; // Apply color
-            previousSpeckey = spec.speckey; // Update previous speckey
-
-            tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        contentWrapper.appendChild(table);
-        contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
-    });
+    return groupedSpecs;
 }
 
 function CreateCheckbox(key, value, groupName) {
     var checkbox = document.createElement('input');
     checkbox.classList.add("garmin-checkbox");
+    checkbox.classList.add("garmin-specification-checkbox");
     checkbox.type = 'checkbox';
     checkbox.value = key;
     checkbox.setAttribute('data-group', groupName); // Assigning the data-group attribute
@@ -167,30 +186,41 @@ function CreateCheckbox(key, value, groupName) {
     return checkbox;     
 }
 
-function CreateButtonsToExpandAndCollapseAllTables()
+function createCheckboxToExpandAndCollapseAllTables()
 {
-    var expandButton = document.createElement('button');
-    expandButton.classList.add("button");
-    expandButton.classList.add("button--info");
-    expandButton.textContent = 'Expand All';
-    expandButton.addEventListener('click', expandAll);
-
-    var collapseButton = document.createElement('button');
-    collapseButton.classList.add("button");
-    collapseButton.classList.add("button--info");
-    collapseButton.textContent = 'Collapse All';
-    collapseButton.addEventListener('click', collapseAll);
-
-    // Append buttons to the container
-
-    var space = document.createElement("span");
-    space.style.marginRight = "10px"; // Adjust the margin as needed for your layout
+    var checkbox = document.createElement('input');
+    checkbox.classList.add("garmin-checkbox");
+    checkbox.type = 'checkbox';
+    checkbox.addEventListener('click',function() {
+        if (checkbox.checked) {
+            expandAll();
+        } else {
+            collapseAll();
+        }
+    });
 
     var expandAllButton = document.getElementById('expand-all-button');
-    expandAllButton.appendChild(expandButton);
-    var collapseAllButton = document.getElementById('collapse-all-button');
-    collapseAllButton.appendChild(collapseButton);
+    expandAllButton.appendChild(checkbox);
 }
+
+function createCheckboxToInvertSpecificationRequirements()
+{
+    var checkbox = document.createElement('input');
+    checkbox.classList.add("garmin-checkbox");
+    checkbox.type = 'checkbox';
+    checkbox.addEventListener('click',function() {
+        if (checkbox.checked) {
+            invertSpecificationRequirements = true;
+        } else {
+            invertSpecificationRequirements = false;
+        }
+        updateAllResults();
+    });
+
+    var invertCheckboxElement = document.getElementById('invert-checkbox');
+    invertCheckboxElement.appendChild(checkbox);
+}
+
 
 // Function to expand all tables
 function expandAll() {
@@ -246,11 +276,31 @@ function populateNumberOfUniqeSpecifications()
 }
 
 function PopulateCellWithProducts(element, speckey, specvalue) {
-    var query = `SELECT displayName, productUrl FROM products where specKey="${speckey}" and specValue="${specvalue}";`;
-    console.log(query);
-    var result = db.exec(query);
+    var finalQuery = `SELECT productId, displayName, productUrl FROM products where specKey="${speckey}" and specValue="${specvalue}"`;
+
+    console.log(finalQuery);
+    var result = db.exec(finalQuery);
+
+    element.innerHTML = "<h4>Products with specification</h4>";
+
     result[0].values.forEach(row => {
-        element.innerHTML += `<a target="_blank" href="${row[1]}">${row[0]}</a> `;
+        element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
+    });
+}
+
+function PopulateCellWithInvertedProducts(element, speckey, specvalue) {
+    var finalQuery = getBeginInversion();
+
+    finalQuery += `SELECT productId, displayName, productUrl FROM products where specKey="${speckey}" and specValue="${specvalue}"`;
+
+    finalQuery += getEndInversion();
+
+    console.log(finalQuery);
+    var result = db.exec(finalQuery);
+
+    element.innerHTML = "<h4>Products without specification</h4>";
+    result[0].values.forEach(row => {
+        element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
     });
 }
 
@@ -262,7 +312,7 @@ function PopulateMatchingProductResults()
 
     // Get the checked speckeys
     const checkedSpecs = {};
-    var selectedCheckBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
+    var selectedCheckBoxes = getAllCheckSpecificationCheckBoxes();
 
     if(selectedCheckBoxes.length == 0) {
         return;
@@ -281,9 +331,45 @@ function PopulateMatchingProductResults()
         checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
     });
 
-    // Generate the query
-    let query = '';
+    var sqlQuery = generateTheQueryAcrossAllSpecificationGroups(checkedSpecs);
+
+    // Use sqlQuery in the fetch call to get the desired results
+    console.log(sqlQuery);
+    var matchingProducts = db.exec(sqlQuery);
+    
+    // Clear previous results
+    resultContainer.innerHTML = '';
+    if(matchingProducts.length == 0)
+    {
+        resultContainer.innerHTML = 'Could not find any matching products';
+    }
+    else
+    {
+        var resultText = document.createElement('p');
+        matchingProducts[0].values.forEach(row => {
+            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
+        });
+    
+        resultContainer.appendChild(resultText);
+    }
+}
+
+function getAllCheckSpecificationCheckBoxes() 
+{
+    return document.querySelectorAll('input[type="checkbox"].garmin-specification-checkbox:checked');    
+}
+
+function generateTheQueryAcrossAllSpecificationGroups(checkedSpecs) 
+{
+    let finalQuery = '';
+
+    if(invertSpecificationRequirements)
+    {
+        finalQuery = getBeginInversion();
+    }
+
     let numberOfUniqueSpecs = 0
+    var query = '';
     Object.values(checkedSpecs).forEach((spec, groupIndex) => {
         if (groupIndex > 0) {
             query += ' OR ';
@@ -307,37 +393,36 @@ function PopulateMatchingProductResults()
         query += ')';
     });
 
-    // Execute the query
-    const sqlQuery = `
-        SELECT productId, displayName, productUrl
-        FROM products
-        WHERE ${query}
-        GROUP BY displayName
-        HAVING COUNT(specKey) = ${numberOfUniqueSpecs};
+    finalQuery += `
+    SELECT productId, displayName, productUrl
+    FROM products
+    WHERE ${query}
+    GROUP BY displayName
+    HAVING COUNT(specKey) = ${numberOfUniqueSpecs}
     `;
 
-    // Use sqlQuery in the fetch call to get the desired results
-    console.log(sqlQuery);
-    var matchingProducts = db.exec(sqlQuery);
-    
-    // Clear previous results
-    resultContainer.innerHTML = '';
-    if(matchingProducts.length == 0)
+    if(invertSpecificationRequirements)
     {
-        resultContainer.innerHTML = 'Could not find any matching products';
+        finalQuery += getEndInversion();
     }
-    else
-    {
-        var resultText = document.createElement('p');
-        matchingProducts[0].values.forEach(row => {
-            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
-        });
-    
-        resultContainer.appendChild(resultText);
-    }
+    return finalQuery;    
 }
 
-function ClearCell(element, speckey) {
+function getBeginInversion()
+{
+    return `SELECT p.productId, p.displayName, p.productUrl
+    FROM products p
+    LEFT JOIN (`;    
+}
+
+function getEndInversion()
+{
+    return `) hasSpecifications ON p.productId = hasSpecifications.productId
+    WHERE hasSpecifications.productId is null
+    GROUP BY p.displayName;`    
+}
+
+function ClearCell(element) {
     element.innerHTML = "";
 }
 
