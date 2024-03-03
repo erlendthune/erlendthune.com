@@ -12,7 +12,7 @@ function startGarminWizard()
 {
     initSqlJs(config).then(function (SQL) {
         console.log("sql.js initialized 🎉");
-        fetch('/garmin/products.db?v=3')
+        fetch('/garmin/products.db?v=4')
         .then(response => response.arrayBuffer())
         .then(buffer => {
             // Create a new database
@@ -292,16 +292,30 @@ function populateNumberOfUniqeSpecifications()
 }
 
 function PopulateCellWithProducts(element, speckey, specvalue) {
-    var finalQuery = `SELECT productId, displayName, productUrl FROM products where specKey="${speckey}" and specValue="${specvalue}"`;
+    var finalQuery = `SELECT productId, displayName, productUrl, price FROM products where specKey="${speckey}" and specValue="${specvalue}" order by price asc`;
 
     console.log(finalQuery);
     var result = db.exec(finalQuery);
 
     result[0].values.forEach(row => {
-        element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
+        var price = getFormattedPrice(row[3]);
+        element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a> ${price}<br/>`;
     });
 }
 
+function getFormattedPrice(unformattedPrice)
+{
+    var price = unformattedPrice;
+    if(price == null)
+    {
+        price = "-";
+    }
+    else
+    {
+        price = "$" + price + " USD";
+    }
+    return price;
+}
 function PopulateCellWithInvertedProducts(element, speckey, specvalue) {
     var finalQuery = getBeginInversion();
 
@@ -360,7 +374,8 @@ function PopulateMatchingProductResults()
     {
         var resultText = document.createElement('p');
         matchingProducts[0].values.forEach(row => {
-            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
+            var price = getFormattedPrice(row[3]);
+            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a> ${price}<br/>`;
         });
     
         resultContainer.appendChild(resultText);
@@ -407,11 +422,12 @@ function generateTheQueryAcrossAllSpecificationGroups(checkedSpecs)
     });
 
     finalQuery += `
-    SELECT productId, displayName, productUrl
+    SELECT productId, displayName, productUrl, price
     FROM products
     WHERE ${query}
     GROUP BY displayName
     HAVING COUNT(specKey) = ${numberOfUniqueSpecs}
+    ORDER BY price
     `;
 
     if(invertSpecificationRequirements)
