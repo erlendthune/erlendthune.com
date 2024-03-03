@@ -86,16 +86,21 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
             var cell3 = document.createElement('td');
     
             var cell4 = document.createElement('td');
-    
-            var cell4ResultTitle = document.createElement('div');
             var specDisplayValue = document.createElement('div');
             specDisplayValue.innerHTML = spec.specdisplayvalue; 
-            cell4ResultTitle.appendChild(specDisplayValue);
+            cell4.appendChild(specDisplayValue);
+    
+            var cell4ResultTitle = document.createElement('div');
+            cell4ResultTitle.innerHTML = "<span>Products with specification</span>";
             cell4ResultTitle.classList.add('garmintitle-without-content');
     
             var cell4Result = document.createElement('div');
             cell4Result.setAttribute("id", "row" + rowId + "resultCell");
             cell4Result.classList.add('garmincollapsed');
+
+            var cell4InvertedResultTitle = document.createElement('div');
+            cell4InvertedResultTitle.innerHTML = "<span>Products without specification</span>";
+            cell4InvertedResultTitle.classList.add('garmintitle-without-content');
 
             var cell4InvertedResult = document.createElement('div');
             cell4InvertedResult.setAttribute("id", "row" + rowId + "invertedResultCell");
@@ -103,6 +108,7 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
 
             cell4.appendChild(cell4ResultTitle);
             cell4.appendChild(cell4Result);
+            cell4.appendChild(cell4InvertedResultTitle);
             cell4.appendChild(cell4InvertedResult);
     
             cell4ResultTitle.addEventListener('click', function () {
@@ -112,7 +118,15 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
                 // Toggle class for rotating the arrow
                 this.classList.toggle('garmin-expanded-arrow');
             });
-    
+
+            cell4InvertedResultTitle.addEventListener('click', function () {
+                const content = this.nextElementSibling;
+                content.classList.toggle('garminexpanded');
+                content.classList.toggle('garmincollapsed');
+                // Toggle class for rotating the arrow
+                this.classList.toggle('garmin-expanded-arrow');
+            });
+
             var checkbox = CreateCheckbox(spec.speckey, spec.specvalue, groupName);
             checkbox.addEventListener('change', function() {
                 updateBadgeCount(groupName); // Update badge count when checkbox state changes
@@ -120,6 +134,8 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
                 if (checkbox.checked) {
                     cell4ResultTitle.classList.remove('garmintitle-without-content');
                     cell4ResultTitle.classList.add('garmintitle-with-content');
+                    cell4InvertedResultTitle.classList.remove('garmintitle-without-content');
+                    cell4InvertedResultTitle.classList.add('garmintitle-with-content');
                     PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
                     PopulateCellWithInvertedProducts(cell4InvertedResult, spec.speckey, spec.specvalue);
                 } else {
@@ -281,8 +297,6 @@ function PopulateCellWithProducts(element, speckey, specvalue) {
     console.log(finalQuery);
     var result = db.exec(finalQuery);
 
-    element.innerHTML = "<h4>Products with specification</h4>";
-
     result[0].values.forEach(row => {
         element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
     });
@@ -298,7 +312,6 @@ function PopulateCellWithInvertedProducts(element, speckey, specvalue) {
     console.log(finalQuery);
     var result = db.exec(finalQuery);
 
-    element.innerHTML = "<h4>Products without specification</h4>";
     result[0].values.forEach(row => {
         element.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a><br/>`;
     });

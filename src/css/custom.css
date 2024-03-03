@@ -74,9 +74,13 @@
 }
 
 .garmintitle-without-content {
+  display:none;
 }
 
 .garmintitle-with-content {
+  font-weight: bold;
+  font-size: 1em;
+  margin-bottom: 10px;
   cursor: pointer; /* Add cursor pointer to indicate clickable */
 }
 
