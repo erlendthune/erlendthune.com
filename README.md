@@ -10,4 +10,4 @@ I created the [Garmin wizard](https://www.erlendthune.com/docs/garmin/) on my Do
 
 - I then installed the sqlite3 WASM plugin with npm install.
 
-CREATE INDEX idx_specKey_specValue ON products (specKey, specValue);
+TODO: Compare products

@@ -7,15 +7,17 @@ let config = {
 
 var db = null;
 var invertSpecificationRequirements = false;
+var numberOfProducts = 0;
 
 function startGarminWizard()
 {
+    tabSupport();
+
     initSqlJs(config).then(function (SQL) {
         console.log("sql.js initialized 🎉");
         fetch('/garmin/products.db?v=4')
         .then(response => response.arrayBuffer())
         .then(buffer => {
-            // Create a new database
             db = new SQL.Database(new Uint8Array(buffer));
             addGarminWizard();
         })
@@ -169,6 +171,8 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
         table.appendChild(tbody);
         contentWrapper.appendChild(table);
         contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
+
+        PopulateMatchingProductResults();
     });
 }
 
@@ -276,7 +280,7 @@ function updateBadgeCount(groupName) {
 function populateNumberOfUniqueProducts()
 {
     var result = db.exec("SELECT COUNT(DISTINCT productId) AS NumberOfProducts FROM products;");
-    var numberOfProducts = result[0].values[0];
+    numberOfProducts = result[0].values[0];
     console.log(`Number of products:${numberOfProducts}`);
     var div = document.getElementById("productCountPlaceholder");
     div.innerHTML += numberOfProducts;
@@ -331,6 +335,14 @@ function PopulateCellWithInvertedProducts(element, speckey, specvalue) {
     });
 }
 
+function updateMatchingProductsBadge(noOfProducts)
+{
+    var badge = document.getElementById("matchingProducts");
+    badge.classList.remove("garminbadgehidden");
+    badge.classList.add("garminbadge");
+    badge.textContent = noOfProducts;
+}
+
 function PopulateMatchingProductResults() 
 {
     // Create a result container to display matching products
@@ -341,24 +353,31 @@ function PopulateMatchingProductResults()
     const checkedSpecs = {};
     var selectedCheckBoxes = getAllCheckSpecificationCheckBoxes();
 
-    if(selectedCheckBoxes.length == 0) {
-        return;
+    var sqlQuery = "";
+    if(selectedCheckBoxes.length == 0) 
+    {
+        sqlQuery = `SELECT productId, displayName, productUrl, price
+        FROM products
+        GROUP BY productId
+        ORDER BY price`;
+    } 
+    else 
+    {
+        selectedCheckBoxes.forEach(checkbox => {
+            const group = checkbox.getAttribute('data-group');
+            if (!checkedSpecs[group]) {
+                checkedSpecs[group] = {};
+            }
+    
+            const speckey = checkbox.value;
+            if (!checkedSpecs[group][speckey]) {
+                checkedSpecs[group][speckey] = [];
+            }
+            checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
+        });
+    
+        sqlQuery = generateTheQueryAcrossAllSpecificationGroups(checkedSpecs);
     }
-
-    selectedCheckBoxes.forEach(checkbox => {
-        const group = checkbox.getAttribute('data-group');
-        if (!checkedSpecs[group]) {
-            checkedSpecs[group] = {};
-        }
-
-        const speckey = checkbox.value;
-        if (!checkedSpecs[group][speckey]) {
-            checkedSpecs[group][speckey] = [];
-        }
-        checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
-    });
-
-    var sqlQuery = generateTheQueryAcrossAllSpecificationGroups(checkedSpecs);
 
     // Use sqlQuery in the fetch call to get the desired results
     console.log(sqlQuery);
@@ -379,6 +398,7 @@ function PopulateMatchingProductResults()
         });
     
         resultContainer.appendChild(resultText);
+        updateMatchingProductsBadge(matchingProducts[0].values.length);
     }
 }
 
@@ -455,3 +475,34 @@ function ClearCell(element) {
     element.innerHTML = "";
 }
 
+
+function tabSupport()
+{
+    // Get all tab buttons and tab contents
+    var tabButtons = document.querySelectorAll('.tablinks');
+    var tabContents = document.querySelectorAll('.tabcontent');
+
+    // Add click event listener to each tab button
+    tabButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            var pageName = this.getAttribute('data-page');
+
+            // Hide all tab contents
+            tabContents.forEach(function(content) {
+                content.style.display = 'none';
+            });
+
+            // Remove 'active' class from all tab buttons
+            tabButtons.forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+
+            // Display the clicked tab content and mark the button as active
+            document.getElementById(pageName).style.display = 'block';
+            this.classList.add('active');
+        });
+    });
+
+    var tab1 = document.getElementById('defaultOpen');
+    tab1.click();
+}

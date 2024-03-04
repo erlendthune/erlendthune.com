@@ -31,32 +31,6 @@
 
 /* Garmin */
 
-.wrap {
-  display: flex;
-}
-
-.left-title {
-  flex-basis: 80%;
-}
-
-.right-title {
-  flex-basis: 50%;
-  padding-left: 20px;
-}
-
-.left {
-  flex-basis: 50%;
-  height: 50vh; 
-  overflow: auto;
-}
-
-.right {
-  flex-basis: 20%;
-  height: 50vh; 
-  overflow: auto;
-  padding-left: 20px;
-}
-
 .column {
   flex: 1;
   padding: 10px;
@@ -123,4 +97,47 @@
   padding: 5px 8px; /* Adjust padding as needed */
   font-size: 12px; /* Adjust font size as needed */
   margin-left: 5px; /* Add margin to separate badge from text */
+}
+
+.garminbadgehidden {
+  display: none;
+}
+
+
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #ccc;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+  background-color: inherit;
+  width: 50%; /* Each tab button takes up 50% width */
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 0; /* Vertical padding only */
+  transition: 0.3s;
+  font-size: 17px;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #0dd69a;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #1acb58;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
 }

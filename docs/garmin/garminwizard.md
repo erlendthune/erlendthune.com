@@ -10,20 +10,18 @@ sidebar_position: 3
     between.
 </div>
 
-  <div className="wrap">
-    <div id="left-title" className="left-title">
-        <h2 id="requirements-title">Requirements</h2> 
-            <span id="expand-all-button"> Expand all</span>
-        <div className="left">
-            <div id="garmin"></div>
-        </div>
-    </div>
-    <div className="right-title">
-        <h4>Matching products</h4>
-        <div className="right">
-            <div id="garmin-result"></div>
-        </div>
-    </div>
-  </div>
+<div className="tab">
+  <button className="tablinks" data-page="Page1" id="defaultOpen">
+  <h2 id="requirements-title">Requirements</h2>
+  </button>
+  <button className="tablinks" data-page="Page2"><h2>Matching products<span id="matchingProducts" className="garminbadgehidden"></span></h2></button>
+</div>
 
-    
+<div id="Page1" className="tabcontent">
+    <span id="expand-all-button"> Expand all</span>
+    <div id="garmin"></div>
+</div>
+
+<div id="Page2" className="tabcontent">
+    <div id="garmin-result"></div>
+</div>
