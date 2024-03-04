@@ -353,6 +353,14 @@ function updateMatchingProductsBadge(noOfProducts)
     badge.textContent = noOfProducts;
 }
 
+function updateNumberOfUniqueSpecsBadge(noOfUniqueSpecs)
+{
+    var badge = document.getElementById("numberOfUniqueSpecs");
+    badge.classList.remove("garminbadgehidden");
+    badge.classList.add("garminbadge");
+    badge.textContent = noOfUniqueSpecs;
+}
+
 function PopulateMatchingProductResults() 
 {
     // Create a result container to display matching products
@@ -386,7 +394,9 @@ function PopulateMatchingProductResults()
             checkedSpecs[group][speckey].push(checkbox.getAttribute('data-value'));
         });
     
-        sqlQuery = generateTheQueryAcrossAllSpecificationGroups(checkedSpecs);
+        var result = generateTheQueryAcrossAllSpecificationGroups(checkedSpecs);
+        sqlQuery = result.sqlQuery;
+        updateNumberOfUniqueSpecsBadge(result.numberOfUniqueSpecs);
     }
 
     // Use sqlQuery in the fetch call to get the desired results
@@ -464,7 +474,7 @@ function generateTheQueryAcrossAllSpecificationGroups(checkedSpecs)
     {
         finalQuery += getEndInversion();
     }
-    return finalQuery;    
+    return {sqlQuery: finalQuery, numberOfUniqueSpecs: numberOfUniqueSpecs};    
 }
 
 function getBeginInversion()
