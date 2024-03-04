@@ -141,3 +141,8 @@
   border: 1px solid #ccc;
   border-top: none;
 }
+
+.big-button {
+  padding: 15px 30px; /* Set padding to make the button larger */
+  font-size: 18px; /* Increase font size for better visibility */
+}

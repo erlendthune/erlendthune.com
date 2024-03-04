@@ -37,6 +37,7 @@ function addGarminWizard() {
     //createCheckboxToInvertSpecificationRequirements();
 
     iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs);
+    PopulateMatchingProductResults();
 }
 
 // Generate HTML elements for product specs
@@ -181,8 +182,6 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
         table.appendChild(tbody);
         contentWrapper.appendChild(table);
         contentWrapper.appendChild(document.createElement('br')); // Add line break between tables
-
-        PopulateMatchingProductResults();
     });
 }
 
@@ -203,6 +202,16 @@ function groupProductSpecsBySpecGroupKeyDisplayName(result) {
         groupedSpecs[spec.SpecGroupKeyDisplayName].push(spec);
     });
     return groupedSpecs;
+}
+
+function createProductResultCheckbox(productId)
+{
+    var checkbox = document.createElement('input');
+    checkbox.classList.add("garmin-checkbox");
+    checkbox.classList.add("garmin-product-result-checkbox");
+    checkbox.type = 'checkbox';
+    checkbox.value = productId;
+    return checkbox;     
 }
 
 function CreateCheckbox(key, value, groupName) {
@@ -411,13 +420,24 @@ function PopulateMatchingProductResults()
     }
     else
     {
-        var resultText = document.createElement('p');
+        var resultDiv = document.createElement('div');
         matchingProducts[0].values.forEach(row => {
             var price = getFormattedPrice(row[3]);
-            resultText.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a> ${price}<br/>`;
+            var matchingProductCheckbox = createProductResultCheckbox(row[0]);
+            matchingProductCheckbox.addEventListener('change', updateCompareButtonState);
+            resultDiv.appendChild(matchingProductCheckbox);
+            var matchingProductDiv = document.createElement('span');
+            resultDiv.appendChild(matchingProductDiv);
+            matchingProductDiv.innerHTML += `<a target="_blank" href="${row[2]}">${row[1]}</a> ${price}<br/>`;
         });
     
-        resultContainer.appendChild(resultText);
+        resultContainer.appendChild(resultDiv);
+        var compareButton = createCompareButton();
+        resultContainer.appendChild(compareButton);
+
+        var comparisonLink = document.createElement('span');
+        comparisonLink.setAttribute('id', 'comparisonLink');
+        resultContainer.appendChild(comparisonLink);
         updateMatchingProductsBadge(matchingProducts[0].values.length);
     }
 }
@@ -526,3 +546,61 @@ function tabSupport()
     var tab1 = document.getElementById('defaultOpen');
     tab1.click();
 }
+// Function to create the button
+function createCompareButton() {
+    const button = document.createElement('button');
+    button.textContent = 'Select up to 5 products to compare';
+    button.id = 'compareButton';
+    button.disabled = true; // Initially disabled
+    button.classList.add('big-button');
+    button.addEventListener('click', compareProducts); // Attach click event listener
+    document.body.appendChild(button); // Append button to the body (you can change the parent element)
+
+    return button;
+}
+
+function getAllProductResultCheckBoxes() 
+{
+    return document.querySelectorAll('input[type="checkbox"].garmin-product-result-checkbox:checked');    
+}
+
+
+// Function to handle checkbox changes and update button state
+function updateCompareButtonState() {
+    const compareButton = document.getElementById('compareButton');
+    const checkedCheckboxes = getAllProductResultCheckBoxes();
+
+    var comparisonLink = document.getElementById('comparisonLink');
+    comparisonLink.innerHTML = '';
+
+    if (checkedCheckboxes.length > 5) {
+        compareButton.disabled = true;
+        compareButton.textContent = "Maximum of 5 checkboxes can be selected for comparison.";
+    } else {
+        compareButton.disabled = false;
+        compareButton.textContent = "Compare products";
+    }
+}
+
+// Function to handle button click
+function compareProducts() {
+    var selectedProductResultCheckboxes = getAllProductResultCheckBoxes();
+    var compareUrl = "https://www.garmin.com/compare/?compareProduct=";
+    selectedProductResultCheckboxes.forEach(function(checkbox, index) {
+        compareUrl += checkbox.value;
+        if (index < selectedProductResultCheckboxes.length - 1) {
+            compareUrl += '&compareProduct=';
+        }
+    });
+    const compareButton = document.getElementById('compareButton');
+    compareButton.disabled = true;
+
+    var comparisonLink = document.getElementById('comparisonLink');
+    const link = document.createElement('a');
+    link.href = compareUrl;
+    link.target = "_blank";
+    link.textContent = "See the comparison on Garmin's page";
+    comparisonLink.appendChild(link);
+    console.log("Compare url: " + compareUrl);
+}
+

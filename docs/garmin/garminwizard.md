@@ -12,7 +12,7 @@ sidebar_position: 3
 
 <div className="tab">
   <button className="tablinks" data-page="Page1" id="defaultOpen">
-  <h2 id="requirements-title">Requirements<span id="numberOfUniqueSpecs" classNmae="garminbadgehidden"></span></h2>
+  <h2 id="requirements-title">Requirements<span id="numberOfUniqueSpecs" className="garminbadgehidden"></span></h2>
   </button>
   <button className="tablinks" data-page="Page2"><h2>Matching products<span id="matchingProducts" className="garminbadgehidden"></span></h2></button>
 </div>
