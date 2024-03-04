@@ -119,7 +119,13 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
                 content.classList.toggle('garmincollapsed');
                 // Toggle class for rotating the arrow
                 this.classList.toggle('garmin-expanded-arrow');
-            });
+
+                if (!content.classList.contains('garminhasbeenexpanded')) 
+                {
+                    content.classList.add("garminhasbeenexpanded");
+                    PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
+                }
+            });            
 
             cell4InvertedResultTitle.addEventListener('click', function () {
                 const content = this.nextElementSibling;
@@ -127,6 +133,12 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
                 content.classList.toggle('garmincollapsed');
                 // Toggle class for rotating the arrow
                 this.classList.toggle('garmin-expanded-arrow');
+
+                if (!content.classList.contains('garminhasbeenexpanded')) 
+                {
+                    content.classList.add("garminhasbeenexpanded");
+                    PopulateCellWithInvertedProducts(cell4InvertedResult, spec.speckey, spec.specvalue);
+                }
             });
 
             var checkbox = CreateCheckbox(spec.speckey, spec.specvalue, groupName);
@@ -138,8 +150,6 @@ function iterateOverTheGroupedSpecsAndCreateHTMLElements(groupedSpecs)
                     cell4ResultTitle.classList.add('garmintitle-with-content');
                     cell4InvertedResultTitle.classList.remove('garmintitle-without-content');
                     cell4InvertedResultTitle.classList.add('garmintitle-with-content');
-                    PopulateCellWithProducts(cell4Result, spec.speckey, spec.specvalue);
-                    PopulateCellWithInvertedProducts(cell4InvertedResult, spec.speckey, spec.specvalue);
                 } else {
                     cell4ResultTitle.classList.add('garmintitle-without-content');
                     cell4ResultTitle.classList.remove('garmintitle-with-content');
