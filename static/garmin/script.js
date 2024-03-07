@@ -15,7 +15,7 @@ function startGarminWizard()
 
     initSqlJs(config).then(function (SQL) {
         console.log("sql.js initialized 🎉");
-        fetch('/garmin/products.db?v=4')
+        fetch('/garmin/products.db?v=5')
         .then(response => response.arrayBuffer())
         .then(buffer => {
             db = new SQL.Database(new Uint8Array(buffer));

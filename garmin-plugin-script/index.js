@@ -12,7 +12,7 @@ export default function (context, options) {
             tagName: 'script',
             attributes: {
               charset: 'utf-8',
-              src: '/garmin/script.js?v=2',
+              src: '/garmin/script.js?v=3',
             },
           },
         ]

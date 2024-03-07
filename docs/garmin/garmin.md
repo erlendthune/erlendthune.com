@@ -1,7 +1,7 @@
 ---
 title: Garmin
 ---
-## TL;DR;
+## The short story
 
 [Start the Garmin wizard.](garminwizard.md)
 

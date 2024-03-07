@@ -3,12 +3,12 @@
 export function onRouteDidUpdate({location, previousLocation}) {
   // Don't execute if we are still on the same page; the lifecycle may be fired
   // because the hash changes (e.g. when navigating between headings)
-  console.log("OnRouteDidUpdate" +location.pathname);
-  if(location.pathname == "/docs/garmin/garminwizard"){
+  console.log("OnRouteDidUpdate " +location.pathname);
+  if(location.pathname.includes("/docs/garmin/garminwizard")) {
     startGarminWizard();
   }
 }
 
 export function onRouteUpdate({location, previousLocation}) {
-  console.log("onRouteUpdate" + location.pathname);
+  console.log("onRouteUpdate " + location.pathname);
 }

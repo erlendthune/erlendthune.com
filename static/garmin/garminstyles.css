@@ -1,11 +1,13 @@
+.garmin-checkbox {
+    transform: scale(1.5);
+    /* Adjust the scale factor as needed */
+}
+
 .column {
     flex: 1;
     padding: 10px;
 }
 
-.garmin-checkbox {
-    transform: scale(1.5); /* Adjust the scale factor as needed */
-}
 .product {
     margin-bottom: 10px;
 }
@@ -14,21 +16,47 @@
     font-weight: bold;
     font-size: 1.2em;
     margin-bottom: 10px;
-    cursor: pointer; /* Add cursor pointer to indicate clickable */
+    cursor: pointer;
+    /* Add cursor pointer to indicate clickable */
+}
+
+.garmintitle-without-content {
+    display: none;
+}
+
+.garmintitle-with-content {
+    font-weight: bold;
+    font-size: 1em;
+    margin-bottom: 10px;
+    cursor: pointer;
+    /* Add cursor pointer to indicate clickable */
+}
+
+/* Styling for arrow indicator */
+.garmintitle-with-content::after {
+    content: "\25B8";
+    /* Right-facing triangle arrow */
+    display: inline-block;
+    margin-left: 5px;
+    transition: transform 0.3s;
+    /* Smooth transition for rotation */
 }
 
 /* Styling for arrow indicator */
 .garmintitle::after {
-    content: "\25B8"; /* Right-facing triangle arrow */
+    content: "\25B8";
+    /* Right-facing triangle arrow */
     display: inline-block;
     margin-left: 5px;
-    transition: transform 0.3s; /* Smooth transition for rotation */
+    transition: transform 0.3s;
+    /* Smooth transition for rotation */
 }
 
 /* Rotate arrow when content is expanded */
 .garmin-expanded-arrow::after {
     transform: rotate(90deg);
 }
+
 /* Hide content by default */
 .garmincollapsed {
     display: none;
@@ -43,10 +71,51 @@
 .garminbadge {
     background-color: red;
     color: white;
-    border-radius: 50%; /* Make the badge circular */
-    padding: 5px 8px; /* Adjust padding as needed */
-    font-size: 12px; /* Adjust font size as needed */
-    margin-left: 5px; /* Add margin to separate badge from text */
+    border-radius: 50%;
+    /* Make the badge circular */
+    padding: 5px 8px;
+    /* Adjust padding as needed */
+    font-size: 12px;
+    /* Adjust font size as needed */
+    margin-left: 5px;
+    /* Add margin to separate badge from text */
 }
 
-/* Styling for pages */
+.garminbadgehidden {
+    display: none;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    background-color: inherit;
+    width: 50%; /* Each tab button takes up 50% width */
+    float: left;
+    border: 1px solid #ccc;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 0; /* Vertical padding only */
+    transition: 0.3s;
+    font-size: 17px;
+  }
+  
+  /* Change background color of buttons on hover */
+  .tab button:hover {
+    background-color: #0dd69a;
+  }
+  
+  /* Create an active/current tablink class */
+  .tab button.active {
+    background-color: #1acb58;
+  }
+  
+  /* Style the tab content */
+  .tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+  }
+  
+  .big-button {
+    padding: 15px 30px; /* Set padding to make the button larger */
+    font-size: 18px; /* Increase font size for better visibility */
+  }
