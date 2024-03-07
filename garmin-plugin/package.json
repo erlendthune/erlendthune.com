@@ -1,9 +1,0 @@
-{
-    "name": "docusaurus-plugin-garmin",
-    "version": "1.0.0",
-    "main": "index.js",
-    "dependencies": {
-      "@docusaurus/core": "^2.0.0-alpha.72"
-    }
-  }
-  
