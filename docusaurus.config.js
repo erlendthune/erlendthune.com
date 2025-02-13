@@ -4,16 +4,18 @@
 // There are various equivalent ways to declare your Docusaurus config.
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
-import { themes as prismThemes } from 'prism-react-renderer';
+import {themes as prismThemes} from 'prism-react-renderer';
+
+// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Erlend Thune',
-  tagline: 'Smart things',
-  favicon: 'img/favicon.ico',
+  tagline: 'Invent something smarter',
+  favicon: 'img/erlendthune.webp',
 
   // Set the production url of your site here
-  url: 'https://www.erlendthune.com',
+  url: 'https://erlendthune.com',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -33,28 +35,7 @@ const config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
-  stylesheets: [
-    '/garmin/garminstyles.css'
-  ],
-  scripts: [
-    // String format.
-    '/garmin/sql-wasm.js'
-    //    '/garmin/script.js'
-  ],
-  // plugins: [
-  //   '/Users/erlendthune/github/erlendthune.com/garmin-plugin'
-  // ],
-  // plugins: [
-  //   [
-  //     '/Users/erlendthune/github/erlendthune.com/garmin-plugin',
-  //     {
-  //       // Plugin options, if any
-  //     },
-  //   ],
 
-  plugins: [
-    './garmin-plugin-script',
-  ],
   presets: [
     [
       'classic',
@@ -62,17 +43,16 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/erlendthune/erlendthune.com/tree/main/packages/create-docusaurus/templates/shared/',
         },
         blog: {
           showReadingTime: true,
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          feedOptions: {
+            type: ['rss', 'atom'],
+            xslt: true,
+          },
+          onInlineTags: 'warn',
+          onInlineAuthors: 'warn',
+          onUntruncatedBlogPosts: 'warn',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -85,43 +65,56 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       // Replace with your project's social card
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'img/erlendthune.webp',
       navbar: {
         title: 'Erlend Thune',
         logo: {
-          alt: 'My Site Logo',
-          src: 'img/logo.svg',
+          alt: 'Erlend Thune Logo',
+          src: 'img/erlendthune.webp',
         },
         items: [
           {
             type: 'docSidebar',
-            sidebarId: 'tutorialSidebar',
+            sidebarId: 'productsSidebar',
             position: 'left',
-            label: 'Garmin wizard',
-          },
+            label: 'Products',
+          }
         ],
       },
       footer: {
         style: 'dark',
         links: [
           {
-            title: 'Links',
+            title: 'GitHUB',
             items: [
               {
-                label: 'GitHub',
+                label: 'Polpriser',
+                href: 'https://github.com/polpriser',
+              },
+              {
+                label: 'Garmin wizard',
+                href: 'https://github.com/garminwizard',
+              },
+              {
+                label: 'Erlend Thune',
                 href: 'https://github.com/erlendthune',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Erlend Thune, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Erlend Thune`,
+      },
+      colorMode: {
+        defaultMode: 'light',
+        disableSwitch: false,
+        respectPrefersColorScheme: true,
       },
       prism: {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
       },
+      customCss: require.resolve('./src/css/custom.css'),
     }),
 };
 
 export default config;
-

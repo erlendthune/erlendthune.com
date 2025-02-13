@@ -4,28 +4,58 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Garmin wizard',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Polpriser',
+    url: '/docs/polpriser/ompolpriser',
+    img: "img/polpriser.webp",
     description: (
       <>
-        Overwhelmed by the number of Garmin watches and 
-        having difficulties choosing one? 
+        Appen Polpriser har alle vinmonopolets varer og priser i en database p&aring; telefonen slik at du ikke trenger &aring; v&aelig;re p&aring; nett for &aring; bruke den.
       </>
     ),
   },
+  {
+    title: 'Garmin wizard',
+    url: '/docs/garminwizard/aboutgarminwizard',
+    img: "img/watchwizard.webp",
+    description: (
+      <>
+        Garmin watches has several hundred features. This wizard helps you find the watch that has the features that are important to you.
+      </>
+    ),
+   },
+   {
+      title: 'Corrate',
+      url: '/docs/corrate/aboutcorrate',
+      img: "img/corrate.webp",
+      description: (
+        <>
+        The app Corrate uses synthetic speech to announce your heart rate as often as you like - provided you have a bluetooth smart heart rate sensor connected, 
+        </>
+      ),    
+    },
+    {
+      title: 'Books',
+      url: 'https://www.erlendthune.com/sverrethune',
+      img: "img/sovellasmall.png",
+      description: (
+        <>
+        My father Sverre Thune has written several books. This page lists them all. 
+        </>
+      ),    
+    }
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({img, title, description, url}) {
   return (
     <div className={clsx('col col--4')}>
-    <a href="/docs/garmin">
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
-      </div>
+      <a href={url}>
+        <div className="text--center">
+          <img src={img} width="100px" />
+        </div>
+        <div className="text--center padding-horiz--md">
+          <Heading as="h3">{title}</Heading>
+          <p>{description}</p>
+        </div>
       </a>
     </div>
   );

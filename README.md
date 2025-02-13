@@ -2,25 +2,40 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
-# Garmin products database
+### Installation
 
-I created the [Garmin wizard](https://www.erlendthune.com/docs/garmin/) on my Docusaurus site the following way:
+```
+$ yarn
+```
 
-I first used C# to download the Garmin products and specifications. The source code is in my [Garmin repository](https://github.com/erlendthune/garmin). There, you will find instructions on how to create a products.db sqlite3 file that contains all the products and specification for all the Garmin watches.
+### Local Development
 
-# Sqlite3 WASM (Web Assembly)
-While in the root directory of Docusaurus, I installed the sqlite3 WASM plugin with npm install.
+```
+$ yarn start
+```
 
-`npm install sql.js`
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-I then copied the `sql-wasm.js` and `sql-wasm.wasm` files from the `node_modules/sql.js/dist` to the `static/garmin` directory.
+### Build
 
-# Garmin wizard script
+```
+$ yarn build
+```
 
-The code for the Garmin wizard is in the `static/garmin/script.js`file. And the styles necessary are in the ´static/garmin/garminstyles.css` file.
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-# Load the wizard
+### Deployment
 
-Docusaurus loads content asynchrounously. This means we cannot run the wizard before the page is ready. To obtain this we must plugin to the Docusaurs [getClientModules lifecycle](https://docusaurus.io/docs/api/plugin-methods/lifecycle-apis#getClientModules). 
+Using SSH:
 
-- The Garmin wizard client module is `your-onRouteUpdate.script.js`in the `garmin-plugin-script` directory.
+```
+$ USE_SSH=true yarn deploy
+```
+
+Not using SSH:
+
+```
+$ GIT_USER=<Your GitHub username> yarn deploy
+```
+
+If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
