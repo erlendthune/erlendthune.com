@@ -1,23 +1,30 @@
-name: FTP Upload
-
 on:
-  push:
-    branches:
-      - main
-
-jobs:
-  web-deploy:
-    name: 🎉 Deploy
-    runs-on: ubuntu-latest
-    steps:
-    - name: 🚚 Get latest code
-      uses: actions/checkout@v3
+  workflow_dispatch:
     
-    - name: 📂 Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Install Docusaurus dependencies
+    - name: Install Docusaurus dependencies
+      working-directory: erlendthune.com
+      run: npm install
+
+    # Step 3: Build Docusaurus
+    - name: Build Docusaurus
+      working-directory: erlendthune.com
+      run: npm run build
+
+    # Step 4: Deploy to GitHub Pages
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
       with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: build/  # Replace 'dist' with the directory containing your files to upload
-          server-dir: docusaurus/  # Specify the remote directory on the FTP server
+        personal_token: ${{ secrets.PERSONAL_TOKEN }}
+        external_repository: erlendthune/erlendthune.github.io  # The GitHub Pages repository    
+        publish_branch: main  # Push to the main branch of erlendthune.github.io
+        publish_dir: erlendthune.com/build  # path to your Docusaurus build directory
