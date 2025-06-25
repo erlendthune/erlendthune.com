@@ -16,7 +16,7 @@ function loadSqlJsScript(src) {
   });
 }
 
-const ForeldreDemo = () => {
+const TreasureHuntMaker = () => {
   const [db, setDb] = useState(null);
   const [message, setMessage] = useState("Vent, laster inn...");
   const [qrCode, setQrCode] = useState(""); // Store QR code
@@ -56,11 +56,11 @@ const ForeldreDemo = () => {
       }
 
       setDb(newDb);
-      setMessage("Klar til å legge til QR-koder!");
+      setMessage("Start adding QR codes and images!");
       updateDatabaseContent(newDb);
     } catch (error) {
       console.error('Error initializing sql.js:', error);
-      setMessage("Feil ved innlasting av databasen.");
+      setMessage("Could not load the database.");
     }
   };
 
@@ -121,58 +121,125 @@ const ForeldreDemo = () => {
     initDb();
   }, []);
 
+  // Clear the database
+  const handleClearDatabase = async () => {
+    localStorage.removeItem('sqlite-db');
+    setMessage('Databasen er tømt.');
+    // Recreate empty database
+    const config = { locateFile: () => "/garmin/sql-wasm.wasm" };
+    await loadSqlJsScript("/garmin/sql-wasm.js");
+    const SQL = await window.initSqlJs(config);
+    const newDb = new SQL.Database();
+    newDb.run(`CREATE TABLE IF NOT EXISTS steg (qrkode TEXT PRIMARY KEY, bilde_base64 TEXT);`);
+    setDb(newDb);
+    setDatabaseContent([]);
+    setQrCode("");
+    setImage(null);
+  };
+
   return (
-    <div>
-      <h1>Foreldre - Legg til QR-kode og bilde</h1>
+    <div style={{ maxWidth: 500, margin: '40px auto', padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
+      <h1 style={{ textAlign: 'center' }}>Add QR number and image</h1>
       <p>{message}</p>
 
-      <div>
-        <label>
-          QR-kode (steg nummer):
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontWeight: 500, marginBottom: 6 }}>
+          QR-code number:
           <input
             type="text"
             value={qrCode}
             onChange={(e) => setQrCode(e.target.value)}
-            placeholder="F.eks. 1, 2, 3..."
+            placeholder="1, 2, 3..."
+            style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '6px',
+              border: '1px solid #ccc',
+              fontSize: '1rem',
+              marginTop: 4,
+              marginBottom: 8,
+              boxSizing: 'border-box',
+              outline: 'none',
+              transition: 'border 0.2s',
+            }}
           />
         </label>
       </div>
 
-      <div>
-        <label>
-          Last opp bilde:
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontWeight: 500, marginBottom: 6 }}>
+          Upload image:
           <input
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
+            style={{
+              display: 'block',
+              marginTop: 4,
+              fontSize: '1rem',
+            }}
           />
         </label>
       </div>
 
       {image && (
-        <div>
-          <h3>Forhåndsvisning av bilde:</h3>
-          <img src={image} alt="Forhåndsvisning" width="100" />
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ marginBottom: 8 }}>Preview of picture:</h3>
+          <img src={image} alt="Preview" width="100" style={{ borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }} />
         </div>
       )}
 
-      <div>
-        <button onClick={handleSave}>Lagre QR-kode og bilde</button>
+      <div style={{ marginBottom: 24 }}>
+        <button
+          onClick={handleSave}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 6,
+            border: 'none',
+            background: '#1976d2',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            marginRight: 12,
+            boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
+            transition: 'background 0.2s',
+          }}
+        >
+          Save QR-code and image
+        </button>
+        <button
+          onClick={handleClearDatabase}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 6,
+            border: 'none',
+            background: '#e74c3c',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 1px 4px rgba(231, 76, 60, 0.08)',
+            transition: 'background 0.2s',
+          }}
+        >
+          Clear database
+        </button>
       </div>
 
       {/* Display the contents of the database */}
-      <h2>Innhold i databasen:</h2>
+      <h2>Image database:</h2>
       <table>
         <thead>
           <tr>
-            <th>QR-kode</th>
-            <th>Bilde (Base64)</th>
+            <th>QR-code</th>
+            <th>Image (Base64)</th>
           </tr>
         </thead>
         <tbody>
           {databaseContent.length === 0 ? (
             <tr>
-              <td colSpan="2">Ingen data tilgjengelig</td>
+              <td colSpan="2">The database is empty</td>
             </tr>
           ) : (
             databaseContent.map(([qrkode, bilde_base64], index) => (
@@ -190,4 +257,4 @@ const ForeldreDemo = () => {
   );
 };
 
-export default ForeldreDemo;
+export default TreasureHuntMaker;
