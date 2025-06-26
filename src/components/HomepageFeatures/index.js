@@ -4,6 +4,17 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
+    title: 'Treasure Hunter',
+    url: '/docs/treasurehunter/instructions',
+    img: "img/treasurehunter.png",
+    description: (
+      <>
+        Treasure Hunter is an app that allows you to create treasure hunts for
+         your friends and family.
+      </>
+    ),
+  },
+  {
     title: 'Polpriser',
     url: '/docs/polpriser/ompolpriser',
     img: "img/polpriser.webp",

@@ -4,20 +4,30 @@ title: Instructions
 hide_title: true
 ---
 
-## Create Treasure Hunt
+## How to Create a Treasure Hunt
 
-On the next page you should: 
-   - Enter a step number (for example, `1`, `2`, `3`, etc.) in the QR code field. This number will be used as the QR code value.
-   - Upload an image that should be shown when this QR code is scanned.
-   - Click "Save QR-code and image" to save the entry. The image and code are stored locally in your browser.
-   - _Tip: The last image you add should reveal where the treasure is hidden!_
+1. **Print and Prepare QR Codes**  
+   Download and print the QR codes from this PDF: [QR codes PDF](/pdf/qr-codes.pdf).  
+   Cut out the QR codes. Set aside QR code 1—this will be the code the treasure hunter scans to start the hunt.
 
-You can add as many QR codes and images as you like. All data is stored locally in your browser and will be available as long as you do not clear your browser storage.
+2. **Hide the QR Codes**  
+   Place QR code 2 in a recognizable location (for example, by the television).  
+   On the next page, enter the QR code number (e.g., `1` for the first step). Take a photo of the location where you placed QR code 2 and upload it.  
+   Click "Save QR-code and image" to store the step. The image and code are saved locally in your browser.
+
+3. **Add More Steps**  
+   Place QR code 3 in another location (for example, in the fridge). Take a photo and upload it with QR code 2 as the step number.  
+   Repeat for as many steps as you like.  
+   _Tip: The last image you add should reveal where the treasure is hidden!_
+
+> **Note:** All data is stored locally in your browser and will remain available as long as you do not clear your browser storage or press the button to delete the database.
 
 
-## Do the Treasure Hunt
+## How to Do the Treasure Hunt
 
-   - Open the [standalone QR scanner page](/qr-scanner) on the same device as you created the treasure hunt. This is important since the images are saved locally in the browser.
-   - Scan a QR code with the value you entered above (for example, `1`).
-   - If the code matches, the corresponding image will be displayed.
+1. Open the [standalone QR scanner page](/qr-scanner) on the same device you used to create the treasure hunt. (This is important, as the images are saved locally in your browser.)
+2. Scan QR code 1 to start.  
+3. Each time a QR code is scanned, the corresponding image will be displayed, guiding the treasure hunter to the next location.
+
+Enjoy your treasure hunt!
 

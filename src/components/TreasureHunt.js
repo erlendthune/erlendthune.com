@@ -17,7 +17,7 @@ function loadSqlJsScript(src) {
   });
 }
 
-const TreasureHunt = () => {
+const TreasureHunt = ({ showScannedCode = false }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [scannedCode, setScannedCode] = useState('');
@@ -27,8 +27,8 @@ const TreasureHunt = () => {
   // Load sql.js and open the database (same logic as ForeldreDemo)
   useEffect(() => {
     const loadDb = async () => {
-      const config = { locateFile: () => "/garmin/sql-wasm.wasm" };
-      await loadSqlJsScript("/garmin/sql-wasm.js");
+      const config = { locateFile: () => "/sql/sql-wasm.wasm" };
+      await loadSqlJsScript("/sql/sql-wasm.js");
       const SQL = await window.initSqlJs(config);
       const savedDb = localStorage.getItem('sqlite-db');
       let newDb;
@@ -106,14 +106,14 @@ const TreasureHunt = () => {
   }, [db, scannedCode]);
 
   return (
-    <div>
-      <h2>QR-code scanner</h2>
+    <div style={{ maxWidth: 500, margin: '0px auto', padding: 0, background: 'var(--ifm-background-color)', color: 'var(--ifm-font-color-base)', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
+      <h2 style={{ textAlign: 'center' }}>Treasure Hunt</h2>
       <video ref={videoRef} style={{ width: 320, height: 240 }} />
       <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }} />
-      <div>Scanned code: {scannedCode}</div>
+      {showScannedCode && <div>Scanned code: {scannedCode}</div>}
       {imageData ? (
         <div>
-          <h3>Image for code {scannedCode}:</h3>
+          <h3>Location</h3>
           <img src={imageData} alt={`Bilde for kode ${scannedCode}`} style={{ maxWidth: '100%' }} />
         </div>
       ) : scannedCode ? (
