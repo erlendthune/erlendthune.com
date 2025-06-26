@@ -7,7 +7,7 @@ hide_title: true
 ## How to Create a Treasure Hunt
 
 1. **Print and Prepare QR Codes**  
-   Download and print the QR codes from this PDF: [QR codes PDF](/pdf/qr-codes.pdf).  
+   Download and print the QR codes from this PDF: [QR codes PDF](/pdf/qrcodes.pdf).  
    Cut out the QR codes. Set aside QR code 1—this will be the code the treasure hunter scans to start the hunt.
 
 2. **Hide the QR Codes**  
