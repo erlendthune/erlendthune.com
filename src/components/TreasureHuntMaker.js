@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import QRScannerWithSnapshot from './QRScannerWithSnapshot';
 
 // Helper to dynamically load sql-wasm.js from static files
 function loadSqlJsScript(src) {
@@ -37,6 +38,69 @@ const TreasureHuntMaker = () => {
   const [qrCode, setQrCode] = useState(""); // Store QR code
   const [image, setImage] = useState(null); // Store the uploaded image
   const [databaseContent, setDatabaseContent] = useState([]); // Store database content
+  const [showScanner, setShowScanner] = useState(false);
+  const [snapshot, setSnapshot] = useState(null);
+  const [nextQRNumber, setNextQRNumber] = useState(1); // Track next QR number
+  
+  const scannerRef = useRef(null);
+
+  // Handle QR code scanning
+  const handleQRCodeScanned = (code) => {
+    setQrCode(code);
+    setMessage(`QR code scanned: ${code}`);
+  };
+
+  // Handle taking a snapshot
+  const handleTakeSnapshot = () => {
+    if (scannerRef.current) {
+      const snapshotData = scannerRef.current.takeSnapshot();
+      if (snapshotData) {
+        setSnapshot(snapshotData);
+        setImage(snapshotData); // Set as the image to save
+        setMessage("Snapshot taken! You can now save the QR code and image.");
+      }
+    }
+  };
+
+  // Calculate the next QR number based on existing data
+  const calculateNextQRNumber = () => {
+    if (databaseContent.length === 0) return 1;
+    const numbers = databaseContent.map(([qrkode]) => parseInt(qrkode)).filter(n => !isNaN(n));
+    return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  };
+
+  // Handle saving final treasure image (without QR code)
+  const handleSaveFinalTreasure = () => {
+    if (!image || !db) {
+      setMessage("Please take a snapshot of the treasure location first!");
+      return;
+    }
+
+    const finalQRNumber = calculateNextQRNumber();
+    
+    try {
+      // Save the final treasure image with the next QR number
+      db.run(
+        `INSERT INTO steg (qrkode, bilde_base64) VALUES (?, ?)`,
+        [finalQRNumber.toString(), image]
+      );
+      setMessage(`Final treasure location saved as entry ${finalQRNumber}! This is where the treasure is hidden (no QR code needed).`);
+
+      // Save the database to localStorage
+      saveDatabaseToLocalStorage(db);
+
+      // Update database content display
+      updateDatabaseContent(db);
+
+      // Reset fields
+      setSnapshot(null);
+      setImage(null);
+      setShowScanner(false);
+    } catch (error) {
+      console.error('Error saving final treasure:', error);
+      setMessage("Error saving final treasure location.");
+    }
+  };
 
   // Initialize the SQLite database with WebAssembly
   const initDb = async () => {
@@ -71,7 +135,7 @@ const TreasureHuntMaker = () => {
       }
 
       setDb(newDb);
-      setMessage("Start adding QR codes and images!");
+      setMessage("Start scanning QR codes and taking snapshots!");
       updateDatabaseContent(newDb);
     } catch (error) {
       console.error('Error initializing sql.js:', error);
@@ -79,50 +143,10 @@ const TreasureHuntMaker = () => {
     }
   };
 
-  // Handle image file input and convert it to Base64 string
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.onload = () => {
-        // ✅ Resize the image
-        const maxSize = 460; // Max width or height in px
-        let { width, height } = img;
-
-        if (width > height) {
-          if (width > maxSize) {
-            height *= maxSize / width;
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width *= maxSize / height;
-            height = maxSize;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // You can adjust image quality here (0.7 is often a good balance)
-        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        setImage(resizedDataUrl);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
   // Handle the saving of the QR code and image to the database
   const handleSave = () => {
     if (!qrCode || !image || !db) {
-      setMessage("Fyll ut alle feltene!");
+      setMessage("Please scan a QR code and take a snapshot first!");
       return;
     }
 
@@ -161,6 +185,8 @@ const TreasureHuntMaker = () => {
     // Reset fields
     setQrCode("");
     setImage(null);
+    setSnapshot(null);
+    setShowScanner(false);
   };
 
   // Save the database to localStorage
@@ -176,6 +202,14 @@ const TreasureHuntMaker = () => {
     const rows = db.exec("SELECT * FROM steg");
     const content = rows[0] ? rows[0].values : []; // Ensure there's a result before accessing values
     setDatabaseContent(content);
+    
+    // Update next QR number
+    if (content.length === 0) {
+      setNextQRNumber(1);
+    } else {
+      const numbers = content.map(([qrkode]) => parseInt(qrkode)).filter(n => !isNaN(n));
+      setNextQRNumber(numbers.length > 0 ? Math.max(...numbers) + 1 : 1);
+    }
   };
 
   // Run initialization when the component mounts
@@ -197,53 +231,25 @@ const TreasureHuntMaker = () => {
     setDatabaseContent([]);
     setQrCode("");
     setImage(null);
+    setSnapshot(null);
+    setShowScanner(false);
+    setNextQRNumber(1);
   };
 
   return (
     <div style={{ maxWidth: 500, margin: '40px auto', padding: 24, background: 'var(--ifm-background-color)', color: 'var(--ifm-font-color-base)', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
-      <h1 style={{ textAlign: 'center' }}>Add QR number and image</h1>
+      <h1 style={{ textAlign: 'center' }}>Scan QR Code and Take Snapshot</h1>
       <p>{message}</p>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'block', fontWeight: 500, marginBottom: 6 }}>
-          QR-code number:
-          <input
-            type="text"
-            value={qrCode}
-            onChange={(e) => setQrCode(e.target.value)}
-            placeholder="1, 2, 3..."
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #ccc',
-              fontSize: '1rem',
-              marginTop: 4,
-              marginBottom: 8,
-              boxSizing: 'border-box',
-              outline: 'none',
-              transition: 'border 0.2s',
-            }}
-          />
+          QR-code scanner:
         </label>
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontWeight: 500, marginBottom: 6 }}>
-          Upload image:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
+        
+        {!showScanner ? (
+          <button
+            onClick={() => setShowScanner(true)}
             style={{
-              display: 'none',
-            }}
-            id="file-upload-input"
-          />
-          <label
-            htmlFor="file-upload-input"
-            style={{
-              display: 'inline-block',
               padding: '10px 20px',
               borderRadius: 6,
               border: 'none',
@@ -252,42 +258,160 @@ const TreasureHuntMaker = () => {
               fontWeight: 600,
               fontSize: '1rem',
               cursor: 'pointer',
-              marginTop: 4,
+              marginRight: 12,
               boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
               transition: 'background 0.2s',
             }}
           >
-            Choose file
-          </label>
-        </label>
+            Start QR Scanner
+          </button>
+        ) : (
+          <div>
+            <QRScannerWithSnapshot 
+              ref={scannerRef}
+              onQRCodeScanned={handleQRCodeScanned}
+              width={320}
+              height={240}
+            />
+            <div style={{ marginTop: 10 }}>
+              <button
+                onClick={handleTakeSnapshot}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#4caf50',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  marginRight: 8,
+                  boxShadow: '0 1px 4px rgba(76, 175, 80, 0.08)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Take Snapshot
+              </button>
+              <button
+                onClick={() => setShowScanner(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: '#757575',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(117, 117, 117, 0.08)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Stop Scanner
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {qrCode && (
+          <div style={{ marginTop: 10, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
+            <strong>Scanned QR Code:</strong> {qrCode}
+          </div>
+        )}
       </div>
+
+      {snapshot && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ padding: 10, background: '#e8f5e8', borderRadius: 6, marginBottom: 10 }}>
+            <strong>✓ Snapshot taken from camera</strong>
+          </div>
+          <button
+            onClick={() => {
+              setSnapshot(null);
+              setImage(null);
+            }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 6,
+              border: 'none',
+              background: '#ff9800',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              boxShadow: '0 1px 4px rgba(255, 152, 0, 0.08)',
+              transition: 'background 0.2s',
+            }}
+          >
+            Clear Snapshot
+          </button>
+        </div>
+      )}
 
       {image && (
         <div style={{ marginBottom: 16 }}>
-          <h3 style={{ marginBottom: 8 }}>Preview of image:</h3>
-          <img src={image} alt="Preview" width="100" style={{ borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }} />
+          <h3 style={{ marginBottom: 8 }}>Preview of snapshot:</h3>
+          <img src={image} alt="Preview" width="200" style={{ borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }} />
         </div>
       )}
 
       <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 16 }}>
+          <h4 style={{ marginBottom: 10 }}>Save Options:</h4>
+          <p style={{ fontSize: '0.9em', color: 'var(--ifm-color-emphasis-600)', marginBottom: 15 }}>
+            Choose how to save this location:
+          </p>
+        </div>
+        
+        {/* Regular QR location save */}
         <button
           onClick={handleSave}
+          disabled={!qrCode || !image}
           style={{
             padding: '10px 20px',
             borderRadius: 6,
             border: 'none',
-            background: '#1976d2',
+            background: qrCode && image ? '#1976d2' : '#ccc',
             color: '#fff',
             fontWeight: 600,
             fontSize: '1rem',
-            cursor: 'pointer',
+            cursor: qrCode && image ? 'pointer' : 'not-allowed',
             marginRight: 12,
+            marginBottom: 8,
             boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
             transition: 'background 0.2s',
           }}
+          title={!qrCode ? 'Scan a QR code first' : !image ? 'Take a snapshot first' : 'Save as regular hunt location'}
         >
-          Save QR-code and image
+          Save as Hunt Location {qrCode ? `(QR: ${qrCode})` : ''}
         </button>
+        
+        <br />
+        
+        {/* Final treasure save */}
+        <button
+          onClick={handleSaveFinalTreasure}
+          disabled={!image}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 6,
+            border: 'none',
+            background: image ? '#ff9800' : '#ccc',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '1rem',
+            cursor: image ? 'pointer' : 'not-allowed',
+            boxShadow: '0 1px 4px rgba(255, 152, 0, 0.08)',
+            transition: 'background 0.2s',
+          }}
+          title={!image ? 'Take a snapshot first' : 'Save as final treasure location (no QR code needed)'}
+        >
+          Save as Final Treasure (#{nextQRNumber})
+        </button>
+        
+        <div style={{ marginTop: 10, fontSize: '0.8em', color: 'var(--ifm-color-emphasis-600)' }}>
+          💡 <strong>Tip:</strong> Save hunt locations first (with QR codes), then save the final treasure location last (no QR code).
+        </div>
       </div>
 
       {/* Display the contents of the database */}
