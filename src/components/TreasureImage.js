@@ -70,7 +70,7 @@ const TreasureImage = ({
       <div style={{ marginTop: 10, fontSize: '0.9em', color: 'var(--ifm-color-emphasis-600)' }}>
         {gameComplete ? 
           '🏆 This is where the treasure is hidden! No QR code to scan here.' :
-          `Scan QR code "${currentStep}" when you find this location`
+          `When you find this location, scan the QR code there to proceed.`
         }
       </div>
       {gameComplete && (

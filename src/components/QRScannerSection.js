@@ -24,12 +24,6 @@ const QRScannerSection = ({
       <div style={{ textAlign: 'center' }}>
         <h4 style={{ marginBottom: 10 }}>QR Code Scanner</h4>
         <QRScanner onQRCodeScanned={handleQRCodeScanned} width={320} height={240} />
-        <div style={{ marginTop: 10, fontSize: '0.8em', color: 'var(--ifm-color-emphasis-600)' }}>
-          {scannedCodes.length === 0 
-            ? `Looking for QR code "1" to start the hunt`
-            : `Looking for QR code "${currentStep}"`
-          }
-        </div>
         {showScannedCode && lastScannedCode && (
           <div style={{ marginTop: 5, fontSize: '0.8em', color: 'var(--ifm-color-emphasis-600)' }}>
             Last scanned: {lastScannedCode}

@@ -26,15 +26,24 @@ export const loadImageForStep = (step, database, setCurrentImage) => {
         console.log(`Found image for step ${step}:`, row.bilde_base64 ? 'Image data exists' : 'No image data');
         console.log('Image data length:', row.bilde_base64 ? row.bilde_base64.length : 0);
         console.log('Image data starts with:', row.bilde_base64 ? row.bilde_base64.substring(0, 50) : 'N/A');
-        setCurrentImage(row.bilde_base64);
+        if (setCurrentImage) {
+          setCurrentImage(row.bilde_base64);
+        }
+        return row.bilde_base64;
       } else {
         console.log(`No image found for step ${step}`);
-        setCurrentImage(null);
+        if (setCurrentImage) {
+          setCurrentImage(null);
+        }
+        return null;
       }
       stmt.free();
     } catch (e) {
       console.error('Error loading image:', e);
-      setCurrentImage('ERROR');
+      if (setCurrentImage) {
+        setCurrentImage('ERROR');
+      }
+      return 'ERROR';
     }
   } else {
     console.log('Database not available for loading image');
@@ -45,6 +54,7 @@ export const loadImageForStep = (step, database, setCurrentImage) => {
         loadImageForStep(step, database, setCurrentImage);
       }
     }, 100);
+    return null;
   }
 };
 
@@ -102,5 +112,97 @@ export const initializeDatabase = async (setDb, setCurrentImage, setTreasureSequ
   } catch (error) {
     console.error('Error loading database:', error);
     setCurrentImage('ERROR');
+  }
+};
+
+// Shuffle array function for random hunt mode
+export const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Get current sequence based on mode
+export const getCurrentSequence = (huntMode, shuffledSequence, treasureSequence) => {
+  return huntMode === 'random' ? shuffledSequence : treasureSequence;
+};
+
+// Get expected QR code for current step
+export const getExpectedQRCode = (huntMode, shuffledSequence, treasureSequence, currentStep) => {
+  const sequence = getCurrentSequence(huntMode, shuffledSequence, treasureSequence);
+  if (sequence.length === 0 || currentStep > sequence.length) return null;
+  return sequence[currentStep - 1];
+};
+
+// Handle QR code scanning logic
+export const handleQRCodeScanned = (
+  code, 
+  currentStep, 
+  huntMode, 
+  shuffledSequence, 
+  treasureSequence, 
+  scannedCodes, 
+  db,
+  setters // object containing all setters: { setLastScannedCode, setScannedCodes, setCurrentStep, setGameComplete, setCurrentImage }
+) => {
+  const { setLastScannedCode, setScannedCodes, setCurrentStep, setGameComplete, setCurrentImage } = setters;
+  const sequence = getCurrentSequence(huntMode, shuffledSequence, treasureSequence);
+  const expectedCode = getExpectedQRCode(huntMode, shuffledSequence, treasureSequence, currentStep);
+  
+  if (code === expectedCode && !scannedCodes.includes(code)) {
+    setLastScannedCode(code);
+    setScannedCodes(prev => [...prev, code]);
+    
+    // Check if this was the last QR code to scan
+    if (currentStep >= sequence.length - 1) {
+      // This was the last QR code, show final treasure location
+      // The final treasure location is always the last item in the original sequence
+      const finalTreasureLocation = treasureSequence[treasureSequence.length - 1];
+      loadImageForStep(finalTreasureLocation, db, setCurrentImage);
+      setCurrentStep(sequence.length); // Set to final step number
+      setGameComplete(true);
+    } else {
+      // Move to next step and show next location to find
+      const nextStep = currentStep + 1;
+      const nextLocation = sequence[nextStep - 1];
+      loadImageForStep(nextLocation, db, setCurrentImage);
+      setCurrentStep(nextStep);
+    }
+  }
+};
+
+// Start the game with selected mode
+export const startGame = (
+  huntMode,
+  treasureSequence,
+  db,
+  setters // object containing: { setGameStarted, setCurrentStep, setScannedCodes, setLastScannedCode, setGameComplete, setShuffledSequence, setCurrentImage }
+) => {
+  const { setGameStarted, setCurrentStep, setScannedCodes, setLastScannedCode, setGameComplete, setShuffledSequence, setCurrentImage } = setters;
+  
+  if (treasureSequence.length === 0) return;
+  
+  setGameStarted(true);
+  setCurrentStep(1);
+  setScannedCodes([]);
+  setLastScannedCode('');
+  setGameComplete(false);
+
+  if (huntMode === 'random') {
+    // Create shuffled sequence (excluding the last treasure location)
+    const huntLocations = treasureSequence.slice(0, -1); // All except last
+    const shuffled = shuffleArray(huntLocations);
+    const finalSequence = [...shuffled, treasureSequence[treasureSequence.length - 1]]; // Add treasure at end
+    setShuffledSequence(finalSequence);
+    
+    // Load first image from shuffled sequence
+    loadImageForStep(shuffled[0], db, setCurrentImage);
+  } else {
+    // Sequential mode - use original sequence
+    setShuffledSequence(treasureSequence);
+    loadImageForStep(treasureSequence[0], db, setCurrentImage);
   }
 };
