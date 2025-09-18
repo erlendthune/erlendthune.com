@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import QRScannerWithSnapshot from './QRScannerWithSnapshot';
+import DatabaseDisplay from './DatabaseDisplay';
+import QRCodeScannerSection from './QRCodeScannerSection';
+import { saveDatabaseToLocalStorage, updateDatabaseContent } from './DatabaseManager';
 
 // Helper to dynamically load sql-wasm.js from static files
 function loadSqlJsScript(src) {
@@ -17,20 +20,7 @@ function loadSqlJsScript(src) {
   });
 }
 
-// Utility function to safely convert Uint8Array to base64
-function uint8ToBase64(uint8) {
-  let CHUNK_SIZE = 0x8000; // 32k
-  let index = 0;
-  let length = uint8.length;
-  let result = '';
-  let slice;
-  while (index < length) {
-    slice = uint8.subarray(index, Math.min(index + CHUNK_SIZE, length));
-    result += String.fromCharCode.apply(null, slice);
-    index += CHUNK_SIZE;
-  }
-  return btoa(result);
-}
+
 
 const TreasureHuntMaker = () => {
   const [db, setDb] = useState(null);
@@ -42,25 +32,10 @@ const TreasureHuntMaker = () => {
   const [snapshot, setSnapshot] = useState(null);
   const [nextQRNumber, setNextQRNumber] = useState(1); // Track next QR number
   
-  const scannerRef = useRef(null);
+
 
   // Handle QR code scanning
-  const handleQRCodeScanned = (code) => {
-    setQrCode(code);
-    setMessage(`QR code scanned: ${code}`);
-  };
 
-  // Handle taking a snapshot
-  const handleTakeSnapshot = () => {
-    if (scannerRef.current) {
-      const snapshotData = scannerRef.current.takeSnapshot();
-      if (snapshotData) {
-        setSnapshot(snapshotData);
-        setImage(snapshotData); // Set as the image to save
-        setMessage("Snapshot taken! You can now save the QR code and image.");
-      }
-    }
-  };
 
   // Calculate the next QR number based on existing data
   const calculateNextQRNumber = () => {
@@ -90,7 +65,7 @@ const TreasureHuntMaker = () => {
       saveDatabaseToLocalStorage(db);
 
       // Update database content display
-      updateDatabaseContent(db);
+      updateDatabaseContent(db, setDatabaseContent, setNextQRNumber);
 
       // Reset fields
       setSnapshot(null);
@@ -136,7 +111,7 @@ const TreasureHuntMaker = () => {
 
       setDb(newDb);
       setMessage("Start scanning QR codes and taking snapshots!");
-      updateDatabaseContent(newDb);
+      updateDatabaseContent(newDb, setDatabaseContent, setNextQRNumber);
     } catch (error) {
       console.error('Error initializing sql.js:', error);
       setMessage("Could not load the database.");
@@ -180,7 +155,7 @@ const TreasureHuntMaker = () => {
     saveDatabaseToLocalStorage(db);
 
     // Fetch all rows from the 'steg' table to show the content
-    updateDatabaseContent(db);
+    updateDatabaseContent(db, setDatabaseContent, setNextQRNumber);
 
     // Reset fields
     setQrCode("");
@@ -189,136 +164,25 @@ const TreasureHuntMaker = () => {
     setShowScanner(false);
   };
 
-  // Save the database to localStorage
-  const saveDatabaseToLocalStorage = (db) => {
-    const binaryArray = db.export(); // Export the database as a binary array
-    const base64 = uint8ToBase64(new Uint8Array(binaryArray)); // Use chunked conversion
-    localStorage.setItem('sqlite-db', base64); // Store the base64 string in localStorage
-    console.log('Database saved to localStorage');
-  };
-
-  // Fetch and display the database content
-  const updateDatabaseContent = (db) => {
-    const rows = db.exec("SELECT * FROM steg");
-    const content = rows[0] ? rows[0].values : []; // Ensure there's a result before accessing values
-    setDatabaseContent(content);
-    
-    // Update next QR number
-    if (content.length === 0) {
-      setNextQRNumber(1);
-    } else {
-      const numbers = content.map(([qrkode]) => parseInt(qrkode)).filter(n => !isNaN(n));
-      setNextQRNumber(numbers.length > 0 ? Math.max(...numbers) + 1 : 1);
-    }
-  };
-
   // Run initialization when the component mounts
   useEffect(() => {
     initDb();
   }, []);
-
-  // Clear the database
-  const handleClearDatabase = async () => {
-    localStorage.removeItem('sqlite-db');
-    setMessage('Databasen er tømt.');
-    // Recreate empty database
-    const config = { locateFile: () => "/sql/sql-wasm.wasm" };
-    await loadSqlJsScript("/sql/sql-wasm.js");
-    const SQL = await window.initSqlJs(config);
-    const newDb = new SQL.Database();
-    newDb.run(`CREATE TABLE IF NOT EXISTS steg (qrkode TEXT PRIMARY KEY, bilde_base64 TEXT);`);
-    setDb(newDb);
-    setDatabaseContent([]);
-    setQrCode("");
-    setImage(null);
-    setSnapshot(null);
-    setShowScanner(false);
-    setNextQRNumber(1);
-  };
 
   return (
     <div style={{ maxWidth: 500, margin: '40px auto', padding: 24, background: 'var(--ifm-background-color)', color: 'var(--ifm-font-color-base)', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
       <h1 style={{ textAlign: 'center' }}>Scan QR Code and Take Snapshot</h1>
       <p>{message}</p>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontWeight: 500, marginBottom: 6 }}>
-          QR-code scanner:
-        </label>
-        
-        {!showScanner ? (
-          <button
-            onClick={() => setShowScanner(true)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 6,
-              border: 'none',
-              background: '#1976d2',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '1rem',
-              cursor: 'pointer',
-              marginRight: 12,
-              boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
-              transition: 'background 0.2s',
-            }}
-          >
-            Start QR Scanner
-          </button>
-        ) : (
-          <div>
-            <QRScannerWithSnapshot 
-              ref={scannerRef}
-              onQRCodeScanned={handleQRCodeScanned}
-              width={320}
-              height={240}
-            />
-            <div style={{ marginTop: 10 }}>
-              <button
-                onClick={handleTakeSnapshot}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#4caf50',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  marginRight: 8,
-                  boxShadow: '0 1px 4px rgba(76, 175, 80, 0.08)',
-                  transition: 'background 0.2s',
-                }}
-              >
-                Take Snapshot
-              </button>
-              <button
-                onClick={() => setShowScanner(false)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#757575',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 4px rgba(117, 117, 117, 0.08)',
-                  transition: 'background 0.2s',
-                }}
-              >
-                Stop Scanner
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {qrCode && (
-          <div style={{ marginTop: 10, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
-            <strong>Scanned QR Code:</strong> {qrCode}
-          </div>
-        )}
-      </div>
+      <QRCodeScannerSection 
+        showScanner={showScanner}
+        setShowScanner={setShowScanner}
+        qrCode={qrCode}
+        setQrCode={setQrCode}
+        setSnapshot={setSnapshot}
+        setImage={setImage}
+        setMessage={setMessage}
+      />
 
       {snapshot && (
         <div style={{ marginBottom: 16 }}>
@@ -414,52 +278,17 @@ const TreasureHuntMaker = () => {
         </div>
       </div>
 
-      {/* Display the contents of the database */}
-      <h2>Image database:</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>QR-code</th>
-            <th>Image (Base64)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {databaseContent.length === 0 ? (
-            <tr>
-              <td colSpan="2">The database is empty</td>
-            </tr>
-          ) : (
-            databaseContent.map(([qrkode, bilde_base64], index) => (
-              <tr key={index}>
-                <td>{qrkode}</td>
-                <td>
-                  <img src={bilde_base64} alt={`Bilde ${qrkode}`} width="50" />
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-
-      <div style={{ margin: '24px 0' }}>
-        <button
-          onClick={handleClearDatabase}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 6,
-            border: 'none',
-            background: '#e74c3c',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            boxShadow: '0 1px 4px rgba(231, 76, 60, 0.08)',
-            transition: 'background 0.2s',
-          }}
-        >
-          Clear database
-        </button>
-      </div>
+      <DatabaseDisplay 
+        databaseContent={databaseContent}
+        setDb={setDb}
+        setMessage={setMessage}
+        setDatabaseContent={setDatabaseContent}
+        setQrCode={setQrCode}
+        setImage={setImage}
+        setSnapshot={setSnapshot}
+        setShowScanner={setShowScanner}
+        setNextQRNumber={setNextQRNumber}
+      />
     </div>
   );
 };

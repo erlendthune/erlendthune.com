@@ -1,3 +1,26 @@
+// Utility function to safely convert Uint8Array to base64
+function uint8ToBase64(uint8) {
+  let CHUNK_SIZE = 0x8000; // 32k
+  let index = 0;
+  let length = uint8.length;
+  let result = '';
+  let slice;
+  while (index < length) {
+    slice = uint8.subarray(index, Math.min(index + CHUNK_SIZE, length));
+    result += String.fromCharCode.apply(null, slice);
+    index += CHUNK_SIZE;
+  }
+  return btoa(result);
+}
+
+// Save the database to localStorage
+export const saveDatabaseToLocalStorage = (db) => {
+  const binaryArray = db.export(); // Export the database as a binary array
+  const base64 = uint8ToBase64(new Uint8Array(binaryArray)); // Use chunked conversion
+  localStorage.setItem('sqlite-db', base64); // Store the base64 string in localStorage
+  console.log('Database saved to localStorage');
+};
+
 // Helper to dynamically load sql-wasm.js from static files
 export function loadSqlJsScript(src) {
   return new Promise((resolve, reject) => {
@@ -112,6 +135,21 @@ export const initializeDatabase = async (setDb, setCurrentImage, setTreasureSequ
   } catch (error) {
     console.error('Error loading database:', error);
     setCurrentImage('ERROR');
+  }
+};
+
+// Fetch and display the database content
+export const updateDatabaseContent = (db, setDatabaseContent, setNextQRNumber) => {
+  const rows = db.exec("SELECT * FROM steg");
+  const content = rows[0] ? rows[0].values : []; // Ensure there's a result before accessing values
+  setDatabaseContent(content);
+  
+  // Update next QR number
+  if (content.length === 0) {
+    setNextQRNumber(1);
+  } else {
+    const numbers = content.map(([qrkode]) => parseInt(qrkode)).filter(n => !isNaN(n));
+    setNextQRNumber(numbers.length > 0 ? Math.max(...numbers) + 1 : 1);
   }
 };
 
