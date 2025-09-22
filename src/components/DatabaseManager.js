@@ -266,3 +266,43 @@ export const deleteFromDatabase = (db, qrkode, setMessage, setDatabaseContent, s
     setMessage('Error deleting item from database.');
   }
 };
+
+// Reorder database items by moving entire records (QR codes with their images)
+export const reorderDatabaseItems = (db, fromIndex, toIndex, databaseContent, setMessage, setDatabaseContent, setNextQRNumber) => {
+  try {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || 
+        fromIndex >= databaseContent.length || toIndex >= databaseContent.length) {
+      return;
+    }
+
+    // Create a copy of the current data array and reorder it
+    const items = [...databaseContent];
+    
+    // Remove the item from its current position and insert it at the new position
+    const [movedItem] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, movedItem);
+    
+    // Clear the entire table
+    db.run('DELETE FROM steg');
+    
+    // Re-insert all items in the new order
+    items.forEach(([qrkode, bilde_base64]) => {
+      const stmt = db.prepare('INSERT INTO steg (qrkode, bilde_base64) VALUES (?, ?)');
+      stmt.bind([qrkode, bilde_base64]);
+      stmt.step();
+      stmt.free();
+    });
+    
+    // Save the updated database
+    saveDatabaseToLocalStorage(db);
+    
+    // Update the displayed content
+    updateDatabaseContent(db, setDatabaseContent, setNextQRNumber);
+    
+    const direction = fromIndex < toIndex ? 'down' : 'up';
+    setMessage(`Moved item with QR code ${movedItem[0]} ${direction} to position ${toIndex + 1}`);
+  } catch (error) {
+    console.error('Error reordering database items:', error);
+    setMessage('Error reordering items in database.');
+  }
+};
