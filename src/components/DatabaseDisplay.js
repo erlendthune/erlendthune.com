@@ -1,5 +1,5 @@
 import React from 'react';
-import { saveDatabaseToLocalStorage, updateDatabaseContent } from './DatabaseManager';
+import { saveDatabaseToLocalStorage, updateDatabaseContent, deleteFromDatabase } from './DatabaseManager';
 
 // Helper to dynamically load sql-wasm.js from static files
 function loadSqlJsScript(src) {
@@ -19,6 +19,7 @@ function loadSqlJsScript(src) {
 
 const DatabaseDisplay = ({ 
   databaseContent, 
+  db,
   setDb, 
   setMessage, 
   setDatabaseContent, 
@@ -46,6 +47,17 @@ const DatabaseDisplay = ({
     setNextQRNumber(1);
   };
 
+  const handleDeleteItem = (qrkode) => {
+    if (!db) {
+      setMessage('Database not available');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete the item with QR code ${qrkode}?`)) {
+      deleteFromDatabase(db, qrkode, setMessage, setDatabaseContent, setNextQRNumber);
+    }
+  };
+
   return (
     <>
       {/* Display the contents of the database */}
@@ -55,12 +67,13 @@ const DatabaseDisplay = ({
           <tr>
             <th>QR-code</th>
             <th>Image (Base64)</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {databaseContent.length === 0 ? (
             <tr>
-              <td colSpan="2">The database is empty</td>
+              <td colSpan="3">The database is empty</td>
             </tr>
           ) : (
             databaseContent.map(([qrkode, bilde_base64], index) => (
@@ -68,6 +81,25 @@ const DatabaseDisplay = ({
                 <td>{qrkode}</td>
                 <td>
                   <img src={bilde_base64} alt={`Bilde ${qrkode}`} width="50" />
+                </td>
+                <td>
+                  <button
+                    onClick={() => handleDeleteItem(qrkode)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 4,
+                      border: 'none',
+                      background: '#e74c3c',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 4px rgba(231, 76, 60, 0.08)',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))

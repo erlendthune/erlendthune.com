@@ -176,6 +176,7 @@ const TreasureHuntMaker = () => {
       handleSave={handleSave}
       handleSaveFinalTreasure={handleSaveFinalTreasure}
       databaseContent={databaseContent}
+      db={db}
       setDb={setDb}
       setDatabaseContent={setDatabaseContent}
       setNextQRNumber={setNextQRNumber}

@@ -18,6 +18,7 @@ const TreasureHuntMakerLayout = ({
   handleSave,
   handleSaveFinalTreasure,
   databaseContent,
+  db,
   setDb,
   setDatabaseContent,
   setShowScanner: setShowScannerProp,
@@ -59,6 +60,7 @@ const TreasureHuntMakerLayout = ({
 
       <DatabaseDisplay 
         databaseContent={databaseContent}
+        db={db}
         setDb={setDb}
         setMessage={setMessage}
         setDatabaseContent={setDatabaseContent}

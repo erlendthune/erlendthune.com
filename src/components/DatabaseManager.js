@@ -244,3 +244,25 @@ export const startGame = (
     loadImageForStep(treasureSequence[0], db, setCurrentImage);
   }
 };
+
+// Delete a specific item from the database
+export const deleteFromDatabase = (db, qrkode, setMessage, setDatabaseContent, setNextQRNumber) => {
+  try {
+    // Delete the item with the specified QR code
+    const stmt = db.prepare('DELETE FROM steg WHERE qrkode = ?');
+    stmt.bind([qrkode]);
+    stmt.step();
+    stmt.free();
+    
+    // Save the updated database
+    saveDatabaseToLocalStorage(db);
+    
+    // Update the displayed content
+    updateDatabaseContent(db, setDatabaseContent, setNextQRNumber);
+    
+    setMessage(`Item with QR code ${qrkode} has been deleted.`);
+  } catch (error) {
+    console.error('Error deleting from database:', error);
+    setMessage('Error deleting item from database.');
+  }
+};
