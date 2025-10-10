@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import QRScannerWithSnapshot from './QRScannerWithSnapshot';
 
 const QRCodeScannerSection = ({ 
@@ -11,6 +11,11 @@ const QRCodeScannerSection = ({
   setMessage 
 }) => {
   const scannerRef = useRef(null);
+
+  // Auto-start scanner when component mounts
+  useEffect(() => {
+    setShowScanner(true);
+  }, [setShowScanner]);
 
   const handleQRCodeScanned = (code) => {
     setQrCode(code);
@@ -35,26 +40,7 @@ const QRCodeScannerSection = ({
         QR-code scanner:
       </label>
       
-      {!showScanner ? (
-        <button
-          onClick={() => setShowScanner(true)}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 6,
-            border: 'none',
-            background: '#1976d2',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            marginRight: 12,
-            boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
-            transition: 'background 0.2s',
-          }}
-        >
-          Start QR Scanner
-        </button>
-      ) : (
+      {showScanner && (
         <div>
           <QRScannerWithSnapshot 
             ref={scannerRef}
@@ -100,6 +86,27 @@ const QRCodeScannerSection = ({
             </button>
           </div>
         </div>
+      )}
+      
+      {!showScanner && (
+        <button
+          onClick={() => setShowScanner(true)}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 6,
+            border: 'none',
+            background: '#1976d2',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            marginRight: 12,
+            boxShadow: '0 1px 4px rgba(25, 118, 210, 0.08)',
+            transition: 'background 0.2s',
+          }}
+        >
+          Start QR Scanner
+        </button>
       )}
       
       {qrCode && (
