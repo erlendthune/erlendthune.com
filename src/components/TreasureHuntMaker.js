@@ -61,7 +61,7 @@ const TreasureHuntMaker = () => {
       // Reset fields
       setSnapshot(null);
       setImage(null);
-      setShowScanner(false);
+      // Keep scanner running - don't set setShowScanner(false)
     } catch (error) {
       console.error('Error saving final treasure:', error);
       setMessage("Error saving final treasure location.");
@@ -152,7 +152,7 @@ const TreasureHuntMaker = () => {
     setQrCode("");
     setImage(null);
     setSnapshot(null);
-    setShowScanner(false);
+    // Keep scanner running - don't set setShowScanner(false)
   };
 
   // Run initialization when the component mounts
