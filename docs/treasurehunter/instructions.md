@@ -4,30 +4,73 @@ title: Instructions
 hide_title: true
 ---
 
-## How to Create a Treasure Hunt
+# Treasure Hunt Instructions
 
-1. **Print and Prepare QR Codes**  
-   Download and print the QR codes from this PDF: [QR codes PDF](/pdf/qrcodes.pdf).  
-   Cut out the QR codes. Set aside QR code 1—this will be the code the treasure hunter scans to start the hunt.
+Create interactive treasure hunts using QR codes and photos.
 
-2. **Hide the QR Codes**  
-   Place QR code 2 in a recognizable location (for example, by the television).  
-   On the next page, enter the QR code number (e.g., `1` for the first step). Take a photo of the location where you placed QR code 2 and upload it.  
-   Click "Save QR-code and image" to store the step. The image and code are saved locally in your browser.
+## 📋 What You'll Need
 
-3. **Add More Steps**  
-   Place QR code 3 in another location (for example, in the fridge). Take a photo and upload it with QR code 2 as the step number.  
-   Repeat for as many steps as you like.  
-   _Tip: The last image you add should reveal where the treasure is hidden!_
+- Smartphone/tablet with camera
+- Printer and scissors
+- [QR codes PDF](/pdf/qrcodes.pdf) (download and print)
+- A treasure to hide!
 
-> **Note:** All data is stored locally in your browser and will remain available as long as you do not clear your browser storage or press the button to delete the database.
+---
 
+## 🎯 Creating Your Treasure Hunt
 
-## How to Do the Treasure Hunt
+### 1. Prepare QR Codes
+- Download and print the [QR codes PDF](/pdf/qrcodes.pdf) or use your own QR codes.
 
-1. Open the [standalone QR scanner page](/qr-scanner) on the same device you used to create the treasure hunt. (This is important, as the images are saved locally in your browser.)
-2. Scan QR code 1 to start.  
-3. Each time a QR code is scanned, the corresponding image will be displayed, guiding the treasure hunter to the next location.
+### 2. Set Up Hunt Locations
+For each location:
+1. **Place a QR code** at your chosen spot
+2. **Scan the QR code** and **Take a clear photo** of the location using the creator tool
+4. **Click "Save as Hunt Location"**
 
-Enjoy your treasure hunt!
+### 3. Set Final Treasure Location
+1. **Place your treasure** (no QR code needed)
+2. **Take a photo** of the treasure location
+3. **Click "Save as Final Treasure"**
+
+### 4. Organize (Optional)
+- Use **↑↓ arrows** to reorder locations
+- **Delete** unwanted locations
+- **Test** by walking through your hunt
+
+---
+
+## 🏃‍♂️ Running Your Treasure Hunt
+
+1. **Open the standalone [QR scanner page](/qr-scanner)** on the same device used to create the hunt
+2. **Choose hunt mode**: Sequential (your order) or Random (shuffled)
+3. **Press "Start Hunt"** - the first location photo appears
+4. **Guide hunters** to find and scan each QR code
+5. **Celebrate** when they reach the treasure! 🎉
+
+---
+
+## 🔧 Quick Tips
+
+**Creating hunts:**
+- Choose recognizable, safe locations
+- Take photos from the hunter's perspective
+
+**During the hunt:**
+- Scan QR codes in the correct order - the app will guide you if you scan the wrong one
+- If you accidentally find a future QR code, don't worry! The app will tell you to keep looking for the current location
+
+**Technical notes:**
+- All data stored locally in your browser
+- Use same device for creating and running hunts
+- Data persists until browser storage is cleared
+
+**Troubleshooting:**
+- QR won't scan? Check lighting and hold camera steady
+- Photos not showing? Use same browser/device
+- Wrong order? Use reorder arrows in database
+
+---
+
+Ready to create your adventure? Start scanning! 🗺️✨
 
