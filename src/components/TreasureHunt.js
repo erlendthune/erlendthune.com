@@ -86,6 +86,11 @@ const TreasureHunt = ({ showScannedCode = false }) => {
     return getCurrentSequence(huntMode, shuffledSequence, treasureSequence);
   };
 
+  // Helper function to clear the last scanned message
+  const handleDismissMessage = () => {
+    setLastScannedCode('');
+  };
+
   return (
     <div style={{ maxWidth: 500, margin: '0px auto', padding: 20, background: 'var(--ifm-background-color)', color: 'var(--ifm-font-color-base)', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
       <h2 style={{ textAlign: 'center', marginBottom: 20 }}>Treasure Hunt</h2>
@@ -130,6 +135,7 @@ const TreasureHunt = ({ showScannedCode = false }) => {
           scannedCodes={scannedCodes}
           currentStep={currentStep}
           showScannedCode={showScannedCode}
+          onDismissMessage={handleDismissMessage}
         />
       )}
     </div>

@@ -56,6 +56,10 @@ For each location:
 - Choose recognizable, safe locations
 - Take photos from the hunter's perspective
 
+**During the hunt:**
+- Scan QR codes in the correct order - the app will guide you if you scan the wrong one
+- If you accidentally find a future QR code, don't worry! The app will tell you to keep looking for the current location
+
 **Technical notes:**
 - All data stored locally in your browser
 - Use same device for creating and running hunts

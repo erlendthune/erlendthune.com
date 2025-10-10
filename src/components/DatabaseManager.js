@@ -188,27 +188,49 @@ export const handleQRCodeScanned = (
 ) => {
   const { setLastScannedCode, setScannedCodes, setCurrentStep, setGameComplete, setCurrentImage } = setters;
   const sequence = getCurrentSequence(huntMode, shuffledSequence, treasureSequence);
-  const expectedCode = getExpectedQRCode(huntMode, shuffledSequence, treasureSequence, currentStep);
   
-  if (code === expectedCode && !scannedCodes.includes(code)) {
-    setLastScannedCode(code);
+  // Get all hunt QR codes (excluding the final treasure location)
+  const huntQRCodes = sequence.slice(0, -1);
+  
+  // Check if this QR code is part of our treasure hunt
+  const isValidHuntQRCode = huntQRCodes.includes(code);
+  const isAlreadyScanned = scannedCodes.includes(code);
+  
+  if (isValidHuntQRCode && !isAlreadyScanned) {
+    // Valid QR code that hasn't been scanned yet
     setScannedCodes(prev => [...prev, code]);
     
-    // Check if this was the last QR code to scan
-    if (currentStep >= sequence.length - 1) {
-      // This was the last QR code, show final treasure location
-      // The final treasure location is always the last item in the original sequence
+    // Find remaining unscanned QR codes
+    const remainingCodes = huntQRCodes.filter(qr => !scannedCodes.includes(qr) && qr !== code);
+    
+    if (remainingCodes.length === 0) {
+      // All hunt QR codes have been scanned - show the final treasure!
       const finalTreasureLocation = treasureSequence[treasureSequence.length - 1];
       loadImageForStep(finalTreasureLocation, db, setCurrentImage);
       setCurrentStep(sequence.length); // Set to final step number
       setGameComplete(true);
+      setLastScannedCode(`${code} found! All locations found! Here's your treasure! 🎉`);
     } else {
-      // Move to next step and show next location to find
-      const nextStep = currentStep + 1;
-      const nextLocation = sequence[nextStep - 1];
-      loadImageForStep(nextLocation, db, setCurrentImage);
-      setCurrentStep(nextStep);
+      // Still have codes to find - show the next location to find
+      const nextCodeToFind = remainingCodes[0]; // Pick the first remaining code
+      loadImageForStep(nextCodeToFind, db, setCurrentImage);
+      setCurrentStep(scannedCodes.length + 1); // Update step count
+      
+      if (remainingCodes.length === 1) {
+        setLastScannedCode(`${code} found! Find the last location (QR ${nextCodeToFind})`);
+      } else {
+        setLastScannedCode(`${code} found! Find any of the ${remainingCodes.length} remaining locations`);
+      }
     }
+  } else if (isAlreadyScanned) {
+    // Already scanned this code
+    setLastScannedCode(`Already found: QR ${code} was already scanned`);
+  } else if (treasureSequence.includes(code)) {
+    // They scanned a QR code from the treasure hunt but not part of current hunt locations
+    setLastScannedCode(`This QR code is part of the treasure hunt but not a location to find`);
+  } else {
+    // Not a valid QR code for this hunt
+    setLastScannedCode(`Not part of this hunt: This QR code doesn't belong to your treasure hunt`);
   }
 };
 
