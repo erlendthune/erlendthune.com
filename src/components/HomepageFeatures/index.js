@@ -4,12 +4,12 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Treasure Hunter',
-    url: '/docs/treasurehunter/instructions',
+    title: 'QR Treasure Hunt',
+    url: '/docs/treasurehunt/abouttreasurehunt',
     img: "img/treasurehunter.png",
     description: (
       <>
-        Treasure Hunter is an app that allows you to create treasure hunts for
+        QR Treasure Hunt is a web app that allows you to create treasure hunts for
          your friends and family.
       </>
     ),
