@@ -15,7 +15,6 @@ export default function TibberDashboard() {
     const [liveStatus, setLiveStatus] = useState('disconnected');
     const [liveData, setLiveData] = useState(null);
     const [rawData, setRawData] = useState('');
-    const [results, setResults] = useState(null);
     const [websocketRetryCount, setWebsocketRetryCount] = useState(0);
     
     // Power monitoring state
@@ -26,6 +25,7 @@ export default function TibberDashboard() {
     const [alertLevel, setAlertLevel] = useState('none'); // 'none', 'info', 'warning', 'critical'
     const [monthlyViolationCount, setMonthlyViolationCount] = useState(0);
     const [measurementCount, setMeasurementCount] = useState(0);
+    const [viewMode, setViewMode] = useState('admin'); // 'admin' or 'monitor'
     
     const websocketRef = useRef(null);
     const retryTimeoutRef = useRef(null);
@@ -33,10 +33,12 @@ export default function TibberDashboard() {
     const currentHourStartRef = useRef(null); // Track current hour synchronously
     const accumulatedAtHourStartRef = useRef(0); // Track accumulated at hour start synchronously
 
-    // Load token and homeId from localStorage on mount
+    // Load token, homeId and viewMode from localStorage on mount
     useEffect(() => {
         const savedToken = localStorage.getItem('tibberApiToken') || '';
         const savedHomeId = localStorage.getItem('tibberHomeId') || '';
+        const savedViewMode = localStorage.getItem('tibberViewMode') || 'admin';
+        
         if (savedToken) {
             setApiToken(savedToken);
             setTokenInput(savedToken);
@@ -45,8 +47,18 @@ export default function TibberDashboard() {
             setHomeId(savedHomeId);
             setHomeIdInput(savedHomeId);
         }
+        setViewMode(savedViewMode);
         if (savedToken || savedHomeId) {
             showStatus('Konfigurasjon lastet fra localStorage', 'success');
+        }
+        
+        // Auto-connect in monitor mode if credentials are available
+        if (savedViewMode === 'monitor' && savedToken && savedHomeId) {
+            setTimeout(() => {
+                if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
+                    connectWebSocket();
+                }
+            }, 1000);
         }
     }, []);
 
@@ -428,69 +440,6 @@ export default function TibberDashboard() {
         }
     };
 
-    const fetchPrices = async () => {
-        const query = `{
-            viewer {
-                homes {
-                    currentSubscription {
-                        priceInfo {
-                            current {
-                                total
-                                energy
-                                tax
-                                startsAt
-                                level
-                            }
-                            today {
-                                total
-                                energy
-                                tax
-                                startsAt
-                                level
-                            }
-                            tomorrow {
-                                total
-                                energy
-                                tax
-                                startsAt
-                                level
-                            }
-                        }
-                    }
-                }
-            }
-        }`;
-
-        setResults({ type: 'loading' });
-        
-        try {
-            const data = await callTibberAPI(query);
-            setResults({ 
-                type: 'prices', 
-                data: data.data.viewer.homes[0].currentSubscription.priceInfo 
-            });
-            setRawData(JSON.stringify(data, null, 2));
-            showStatus('Strømpriser hentet!', 'success');
-        } catch (error) {
-            setResults({ type: 'error', message: error.message });
-        }
-    };
-
-    const formatTime = (date) => {
-        return date.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const getPriceLevelEmoji = (level) => {
-        const emojis = {
-            'VERY_CHEAP': '💚',
-            'CHEAP': '💚',
-            'NORMAL': '💛',
-            'EXPENSIVE': '🧡',
-            'VERY_EXPENSIVE': '❤️'
-        };
-        return emojis[level] || '⚡';
-    };
-
     const renderLiveData = () => {
         if (!liveData) {
             return <p className={styles.placeholder}>Trykk på "Start Live Strømdata" for å se sanntidsdata fra Tibber</p>;
@@ -753,85 +702,6 @@ export default function TibberDashboard() {
         );
     };
 
-    const renderPrices = (priceInfo) => {
-        const now = new Date();
-        
-        return (
-            <>
-                <div className={styles.priceCard}>
-                    <h3>Nåværende pris</h3>
-                    <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Total pris:</span>
-                        <span className={styles.infoValue}>{priceInfo.current.total.toFixed(2)} kr/kWh</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Energi:</span>
-                        <span className={styles.infoValue}>{priceInfo.current.energy.toFixed(2)} kr/kWh</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Avgifter:</span>
-                        <span className={styles.infoValue}>{priceInfo.current.tax.toFixed(2)} kr/kWh</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Prisnivå:</span>
-                        <span className={styles.infoValue}>
-                            {getPriceLevelEmoji(priceInfo.current.level)} {priceInfo.current.level}
-                        </span>
-                    </div>
-                </div>
-
-                <div className={styles.priceCard}>
-                    <h3>Dagens priser</h3>
-                    {priceInfo.today.map((price, index) => {
-                        const startTime = new Date(price.startsAt);
-                        const isCurrent = startTime <= now && new Date(startTime.getTime() + 60*60*1000) > now;
-                        return (
-                            <div key={index} className={`${styles.priceItem} ${isCurrent ? styles.current : ''}`}>
-                                <span>{formatTime(startTime)}</span>
-                                <span>{getPriceLevelEmoji(price.level)} {price.total.toFixed(2)} kr/kWh</span>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {priceInfo.tomorrow && priceInfo.tomorrow.length > 0 && (
-                    <div className={styles.priceCard}>
-                        <h3>Morgendagens priser</h3>
-                        {priceInfo.tomorrow.map((price, index) => {
-                            const startTime = new Date(price.startsAt);
-                            return (
-                                <div key={index} className={styles.priceItem}>
-                                    <span>{formatTime(startTime)}</span>
-                                    <span>{getPriceLevelEmoji(price.level)} {price.total.toFixed(2)} kr/kWh</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </>
-        );
-    };
-
-    const renderResults = () => {
-        if (!results) {
-            return liveStatus === 'disconnected' ? renderLiveData() : null;
-        }
-
-        if (results.type === 'loading') {
-            return <div className={styles.loading}>Henter strømpriser</div>;
-        }
-
-        if (results.type === 'error') {
-            return <p className={styles.error}>Kunne ikke hente strømpriser: {results.message}</p>;
-        }
-
-        if (results.type === 'prices') {
-            return renderPrices(results.data);
-        }
-
-        return null;
-    };
-
     const getLiveStatusText = () => {
         switch (liveStatus) {
             case 'connected':
@@ -851,7 +721,131 @@ export default function TibberDashboard() {
         if (alertLevel === 'info') return styles.bgInfo;
         return styles.bgNormal;
     };
+    
+    const switchToMonitorView = () => {
+        if (!apiToken || !homeId) {
+            showStatus('Vennligst legg inn og lagre API token og Home ID først', 'error');
+            return;
+        }
+        setViewMode('monitor');
+        localStorage.setItem('tibberViewMode', 'monitor');
+        
+        // Auto-connect when entering monitor mode
+        if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
+            setTimeout(() => connectWebSocket(), 500);
+        }
+    };
+    
+    const switchToAdminView = () => {
+        setViewMode('admin');
+        localStorage.setItem('tibberViewMode', 'admin');
+    };
+    
+    const renderMonitorView = () => {
+        const now = liveData ? new Date(liveData.timestamp) : new Date();
+        const minutesRemaining = liveData ? 59 - now.getMinutes() : 0;
+        
+        // Calculate max allowed power
+        let maxPower_kW = 0;
+        if (liveData && currentHourStart !== null) {
+            const minutesElapsed = now.getMinutes() + now.getSeconds() / 60;
+            const timeRemaining = 60 - minutesElapsed;
+            const maxEnergyThisHour_kWh = 10;
+            const E_consumed_kWh = liveData.accumulatedConsumption - accumulatedAtHourStart;
+            const E_remaining_kWh = maxEnergyThisHour_kWh - E_consumed_kWh;
+            maxPower_kW = (E_remaining_kWh / (timeRemaining / 60));
+        }
+        
+        return (
+            <div className={`${styles.monitorView} ${styles[`monitor${alertLevel.charAt(0).toUpperCase()}${alertLevel.slice(1)}`]}`}>
+                <div className={styles.monitorHeader}>
+                    <h1 className={styles.monitorTitle}>⚡ Kraftovervåking</h1>
+                    <button 
+                        className={styles.adminButton}
+                        onClick={switchToAdminView}
+                    >
+                        ⚙️ Admin
+                    </button>
+                </div>
+                
+                {liveStatus === 'connected' && liveData && currentHourStart !== null ? (
+                    <>
+                        <div className={styles.monitorMainMetric}>
+                            <div className={styles.monitorLabel}>Beregnet timesnitt</div>
+                            <div className={styles.monitorValue}>
+                                {projectedAverage.toFixed(2)}
+                                <span className={styles.monitorUnit}>kW</span>
+                            </div>
+                            <div className={styles.monitorLimit}>Grense: 10 kW</div>
+                        </div>
+                        
+                        <div className={styles.monitorStats}>
+                            <div className={styles.monitorStat}>
+                                <div className={styles.monitorStatLabel}>Nåværende effekt</div>
+                                <div className={styles.monitorStatValue}>
+                                    {(liveData.power / 1000).toFixed(2)} kW
+                                </div>
+                            </div>
+                            
+                            <div className={styles.monitorStat}>
+                                <div className={styles.monitorStatLabel}>Tid igjen</div>
+                                <div className={styles.monitorStatValue}>
+                                    {minutesRemaining} min
+                                </div>
+                            </div>
+                            
+                            <div className={styles.monitorStat}>
+                                <div className={styles.monitorStatLabel}>Maks effekt tillatt</div>
+                                <div className={styles.monitorStatValue} style={{
+                                    color: maxPower_kW < 0 ? '#ff0000' : maxPower_kW < 5 ? '#ff8800' : '#00ff00'
+                                }}>
+                                    {maxPower_kW.toFixed(1)} kW
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className={styles.monitorFooter}>
+                            <div className={styles.monitorViolations}>
+                                <span className={styles.monitorViolationsLabel}>Brudd denne måneden:</span>
+                                <span className={styles.monitorViolationsCount}>
+                                    {monthlyViolationCount}/3
+                                </span>
+                                {monthlyViolationCount >= 3 && (
+                                    <span className={styles.monitorViolationsWarning}>⚠️ Ekstra gebyr!</span>
+                                )}
+                            </div>
+                            
+                            {renderAlertBanner()}
+                        </div>
+                        
+                        <div className={styles.monitorTimestamp}>
+                            Oppdatert: {now.toLocaleTimeString('no-NO')}
+                        </div>
+                    </>
+                ) : (
+                    <div className={styles.monitorConnecting}>
+                        <div className={styles.monitorConnectingIcon}>⚡</div>
+                        <div className={styles.monitorConnectingText}>
+                            {liveStatus === 'connecting' ? 'Kobler til...' : 
+                             liveStatus === 'disconnected' ? 'Starter tilkobling...' :
+                             'Venter på data...'}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
+    // Render monitor view if in monitor mode
+    if (viewMode === 'monitor') {
+        return (
+            <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
+                {renderMonitorView()}
+            </div>
+        );
+    }
+    
+    // Render admin view
     return (
         <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
             <div className={styles.container}>
@@ -919,8 +913,11 @@ export default function TibberDashboard() {
                     >
                         Stopp Live Data
                     </button>
-                    <button className={styles.btn} onClick={fetchPrices}>
-                        Hent Strømpriser (Demo)
+                    <button 
+                        className={`${styles.btn} ${styles.btnMonitor}`}
+                        onClick={switchToMonitorView}
+                    >
+                        📊 Monitor View
                     </button>
                 </div>
 
@@ -931,8 +928,7 @@ export default function TibberDashboard() {
                         <span className={styles.statusText}>{getLiveStatusText()}</span>
                     </div>
                     <div className={styles.results}>
-                        {liveStatus === 'connected' && renderLiveData()}
-                        {liveStatus !== 'connected' && renderResults()}
+                        {renderLiveData()}
                     </div>
                 </div>
 
