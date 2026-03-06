@@ -571,3 +571,236 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ========================================
+   POWER MONITORING STYLES
+   ======================================== */
+
+/* Background colors based on alert levels */
+.bgNormal {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bgInfo {
+    background: linear-gradient(135deg, #ffd89b 0%, #ffcc44 100%);
+    animation: pulseInfo 2s ease-in-out infinite;
+}
+
+.bgWarning {
+    background: linear-gradient(135deg, #ffaa44 0%, #ff8800 100%);
+    animation: pulseWarning 1.5s ease-in-out infinite;
+}
+
+.bgCritical {
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+    animation: pulseCritical 1s ease-in-out infinite;
+}
+
+@keyframes pulseInfo {
+    0%, 100% { opacity: 0.95; }
+    50% { opacity: 1; }
+}
+
+@keyframes pulseWarning {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+}
+
+@keyframes pulseCritical {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+}
+
+/* Alert Banner */
+.alertBanner {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border-radius: 12px;
+    border-left: 6px solid;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alertInfo {
+    background: #fff9e6;
+    border-left-color: #ffcc44;
+}
+
+.alertWarning {
+    background: #fff3e0;
+    border-left-color: #ff8800;
+}
+
+.alertCritical {
+    background: #ffe6e6;
+    border-left-color: #cc0000;
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.alertIcon {
+    font-size: 3em;
+    line-height: 1;
+}
+
+.alertContent {
+    flex: 1;
+}
+
+.alertTitle {
+    font-size: 1.3em;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.alertInfo .alertTitle {
+    color: #cc9900;
+}
+
+.alertWarning .alertTitle {
+    color: #cc5500;
+}
+
+.alertCritical .alertTitle {
+    color: #990000;
+}
+
+.alertMessage {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.alertSuggestion {
+    font-size: 0.95em;
+    color: #555;
+    font-style: italic;
+}
+
+/* Projection Section in Live Data */
+.projectionSection {
+    margin-top: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e3e7ed 100%);
+    border-radius: 12px;
+    border: 2px solid #ddd;
+}
+
+.projectionSection h4 {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.projectionMetric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 3px solid;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.projectionMetric.none {
+    background: #f0f4f8;
+    border-color: #cbd5e0;
+}
+
+.projectionMetric.info {
+    background: #fffbeb;
+    border-color: #ffcc44;
+    box-shadow: 0 0 20px rgba(255, 204, 68, 0.3);
+}
+
+.projectionMetric.warning {
+    background: #fff5eb;
+    border-color: #ff8800;
+    box-shadow: 0 0 20px rgba(255, 136, 0, 0.4);
+    animation: pulseScale 1.5s ease-in-out infinite;
+}
+
+.projectionMetric.critical {
+    background: #ffe6e6;
+    border-color: #cc0000;
+    box-shadow: 0 0 25px rgba(204, 0, 0, 0.5);
+    animation: pulseScale 1s ease-in-out infinite;
+}
+
+@keyframes pulseScale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.projectionLabel {
+    font-size: 1.1em;
+    color: #555;
+}
+
+.projectionValue {
+    font-size: 2.5em;
+    line-height: 1;
+}
+
+.projectionMetric.critical .projectionValue {
+    color: #cc0000;
+}
+
+.projectionMetric.warning .projectionValue {
+    color: #cc5500;
+}
+
+.projectionMetric.info .projectionValue {
+    color: #cc9900;
+}
+
+.projectionUnit {
+    font-size: 0.6em;
+    font-weight: normal;
+    margin-left: 5px;
+}
+
+/* Responsive adjustments for power monitoring */
+@media (max-width: 768px) {
+    .alertBanner {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .alertIcon {
+        font-size: 2.5em;
+    }
+    
+    .projectionValue {
+        font-size: 2em;
+    }
+    
+    .projectionMetric {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}

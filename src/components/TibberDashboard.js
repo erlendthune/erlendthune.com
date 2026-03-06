@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './TibberDashboard.module.css';
+import * as PowerMonitorDB from './PowerMonitorDB';
 
 const TIBBER_API_URL = 'https://api.tibber.com/v1-beta/gql';
 const TIBBER_WEBSOCKET_URL = 'wss://websocket-api.tibber.com/v1-beta/gql/subscriptions';
 const MAX_RETRY_ATTEMPTS = 3;
-const HOME_ID = 'YOUR_HOME_ID_HERE';
 
 export default function TibberDashboard() {
     const [apiToken, setApiToken] = useState('');
     const [tokenInput, setTokenInput] = useState('');
+    const [homeId, setHomeId] = useState('');
+    const [homeIdInput, setHomeIdInput] = useState('');
     const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
     const [liveStatus, setLiveStatus] = useState('disconnected');
     const [liveData, setLiveData] = useState(null);
@@ -16,16 +18,65 @@ export default function TibberDashboard() {
     const [results, setResults] = useState(null);
     const [websocketRetryCount, setWebsocketRetryCount] = useState(0);
     
+    // Power monitoring state
+    const [db, setDb] = useState(null);
+    const [currentHourStart, setCurrentHourStart] = useState(null);
+    const [accumulatedAtHourStart, setAccumulatedAtHourStart] = useState(0);
+    const [projectedAverage, setProjectedAverage] = useState(0);
+    const [alertLevel, setAlertLevel] = useState('none'); // 'none', 'info', 'warning', 'critical'
+    const [monthlyViolationCount, setMonthlyViolationCount] = useState(0);
+    const [measurementCount, setMeasurementCount] = useState(0);
+    
     const websocketRef = useRef(null);
     const retryTimeoutRef = useRef(null);
+    const saveCounterRef = useRef(0); // Batch save every 10 measurements
+    const currentHourStartRef = useRef(null); // Track current hour synchronously
+    const accumulatedAtHourStartRef = useRef(0); // Track accumulated at hour start synchronously
 
-    // Load token from localStorage on mount
+    // Load token and homeId from localStorage on mount
     useEffect(() => {
         const savedToken = localStorage.getItem('tibberApiToken') || '';
+        const savedHomeId = localStorage.getItem('tibberHomeId') || '';
         if (savedToken) {
             setApiToken(savedToken);
             setTokenInput(savedToken);
-            showStatus('API token lastet fra localStorage', 'success');
+        }
+        if (savedHomeId) {
+            setHomeId(savedHomeId);
+            setHomeIdInput(savedHomeId);
+        }
+        if (savedToken || savedHomeId) {
+            showStatus('Konfigurasjon lastet fra localStorage', 'success');
+        }
+    }, []);
+
+    // Initialize database on mount
+    useEffect(() => {
+        const initDb = async () => {
+            try {
+                console.log('Starting database initialization...');
+                const database = await PowerMonitorDB.initializeDatabase();
+                setDb(database);
+                console.log('✅ Database initialized successfully');
+                
+                // Clean old data (older than 60 days)
+                PowerMonitorDB.cleanOldData(database, 60);
+                
+                // Get current month violation count
+                const now = new Date();
+                const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const count = PowerMonitorDB.getCurrentMonthViolations(database, month);
+                setMonthlyViolationCount(count);
+                
+                console.log('Power monitor database ready, violations:', count);
+            } catch (error) {
+                console.error('❌ Failed to initialize database:', error);
+                // Continue without database - monitoring will still work, just no persistence
+            }
+        };
+        
+        if (typeof window !== 'undefined') {
+            initDb();
         }
     }, []);
 
@@ -57,6 +108,17 @@ export default function TibberDashboard() {
         localStorage.setItem('tibberApiToken', token);
         setApiToken(token);
         showStatus('API token lagret!', 'success');
+    };
+
+    const saveHomeId = () => {
+        const id = homeIdInput.trim();
+        if (!id) {
+            showStatus('Vennligst legg inn en Home ID', 'error');
+            return;
+        }
+        localStorage.setItem('tibberHomeId', id);
+        setHomeId(id);
+        showStatus('Home ID lagret!', 'success');
     };
 
     const callTibberAPI = async (query) => {
@@ -95,6 +157,10 @@ export default function TibberDashboard() {
     const connectWebSocket = useCallback(() => {
         if (!apiToken) {
             showStatus('Vennligst legg inn og lagre din API token først', 'error');
+            return;
+        }
+        if (!homeId) {
+            showStatus('Vennligst legg inn og lagre din Home ID først', 'error');
             return;
         }
 
@@ -161,7 +227,7 @@ export default function TibberDashboard() {
             showStatus(`Kunne ikke opprette WebSocket-tilkobling: ${error.message}`, 'error');
             setLiveStatus('disconnected');
         }
-    }, [apiToken, websocketRetryCount, showStatus]);
+    }, [apiToken, homeId, websocketRetryCount, showStatus]);
 
     const subscribeToLiveMeasurement = (ws) => {
         const subscription = {
@@ -169,7 +235,7 @@ export default function TibberDashboard() {
             type: 'subscribe',
             payload: {
                 query: `subscription {
-                    liveMeasurement(homeId: "${HOME_ID}") {
+                    liveMeasurement(homeId: "${homeId}") {
                         timestamp
                         power
                         lastMeterConsumption
@@ -212,11 +278,32 @@ export default function TibberDashboard() {
         const measurement = data.liveMeasurement;
         setLiveData(measurement);
         setRawData(JSON.stringify(measurement, null, 2));
+        
+        // Debug logging
+        console.log('Power monitoring check:', {
+            db: !!db,
+            timestamp: measurement.timestamp,
+            accumulatedConsumption: measurement.accumulatedConsumption,
+            power: measurement.power,
+            currentHourStart: currentHourStart
+        });
+        
+        // Power monitoring: works without database, but won't persist
+        if (measurement.timestamp && measurement.accumulatedConsumption != null && measurement.power != null) {
+            checkAndResetHour(measurement.timestamp, measurement.accumulatedConsumption);
+            calculateProjection(measurement);
+        } else {
+            console.log('⚠️ Skipping power monitoring - missing timestamp, accumulatedConsumption, or power');
+        }
     };
 
     const startLiveData = () => {
         if (!apiToken) {
             showStatus('Vennligst legg inn og lagre din API token først', 'error');
+            return;
+        }
+        if (!homeId) {
+            showStatus('Vennligst legg inn og lagre din Home ID først', 'error');
             return;
         }
 
@@ -239,6 +326,106 @@ export default function TibberDashboard() {
         setLiveStatus('disconnected');
         setLiveData(null);
         showStatus('Live data stoppet', 'success');
+    };
+
+    // === POWER MONITORING FUNCTIONS ===
+    
+    // Get hour start timestamp (zeroed minutes, seconds, ms)
+    const getHourStartTimestamp = (date) => {
+        const d = new Date(date);
+        d.setMinutes(0, 0, 0);
+        return d.getTime();
+    };
+    
+    // Check if we've crossed into a new hour and reset tracking
+    const checkAndResetHour = (timestampStr, currentAccumulated) => {
+        const now = new Date(timestampStr);
+        const hourStart = getHourStartTimestamp(now);
+        
+        // First measurement ever, or new hour detected (use ref for synchronous check)
+        if (currentHourStartRef.current === null || currentHourStartRef.current !== hourStart) {
+            // Save previous hour if it exceeded threshold (only if db available)
+            if (currentHourStartRef.current !== null && projectedAverage > 10 && db) {
+                const prevDate = new Date(currentHourStartRef.current);
+                const dateStr = prevDate.toISOString().split('T')[0];
+                const month = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+                
+                PowerMonitorDB.recordViolation(db, currentHourStartRef.current, dateStr, month, projectedAverage);
+                
+                // Update violation count
+                const count = PowerMonitorDB.getCurrentMonthViolations(db, month);
+                setMonthlyViolationCount(count);
+                
+                console.log(`Hour ended with average ${projectedAverage.toFixed(2)} kW (violation recorded)`);
+            }
+            
+            // Start tracking new hour
+            console.log(`✅ New hour started at ${now.toISOString()}, hourStart=${hourStart}, accumulated=${currentAccumulated}`);
+            
+            // Update both ref (synchronous) and state (for UI)
+            currentHourStartRef.current = hourStart;
+            accumulatedAtHourStartRef.current = currentAccumulated;
+            setCurrentHourStart(hourStart);
+            setAccumulatedAtHourStart(currentAccumulated);
+            setMeasurementCount(0);
+            setProjectedAverage(0);
+            
+            // Save to database (only if db available)
+            if (db) {
+                const dateStr = now.toISOString().split('T')[0];
+                PowerMonitorDB.saveHourlyData(db, hourStart, dateStr, currentAccumulated, 0, 0);
+            }
+        }
+    };
+    
+    // Calculate projected hourly average
+    const calculateProjection = (measurement) => {
+        // Use ref for synchronous check
+        if (currentHourStartRef.current === null) return;
+        
+        const now = new Date(measurement.timestamp);
+        const minutesElapsed = now.getMinutes() + now.getSeconds() / 60;
+        const minutesRemaining = 60 - minutesElapsed;
+        
+        // Energy consumed this hour (kWh) - use ref for accurate value
+        const E_consumed_kWh = measurement.accumulatedConsumption - accumulatedAtHourStartRef.current;
+        const E_consumed_Wh = E_consumed_kWh * 1000; // Convert to Wh
+        
+        // Current power (convert W to kW)
+        const P_current_kW = measurement.power / 1000;
+        
+        // Projected energy if current power continues
+        const projectedWh = E_consumed_Wh + (P_current_kW * 1000 * (minutesRemaining / 60));
+        
+        // Average over full hour (convert back to kWh, but represents average kW)
+        const P_avg = projectedWh / 1000;
+        
+        setProjectedAverage(P_avg);
+        
+        // Update measurement count
+        const newCount = measurementCount + 1;
+        setMeasurementCount(newCount);
+        
+        // Determine alert level
+        let level = 'none';
+        if (P_avg > 9.9) {
+            level = 'critical';
+        } else if (P_avg > 9.5) {
+            level = 'warning';
+        } else if (P_avg > 8.0) {
+            level = 'info';
+        }
+        setAlertLevel(level);
+        
+        // Batch save to database (every 10 measurements, only if db available)
+        if (db) {
+            saveCounterRef.current++;
+            if (saveCounterRef.current >= 10) {
+                PowerMonitorDB.updateHourlyStats(db, currentHourStartRef.current, newCount, Math.max(projectedAverage, P_avg));
+                PowerMonitorDB.saveDatabaseToLocalStorage(db);
+                saveCounterRef.current = 0;
+            }
+        }
     };
 
     const fetchPrices = async () => {
@@ -415,8 +602,152 @@ export default function TibberDashboard() {
                     </div>
                 )}
                 
+                {/* Power Projection Section - Always visible */}
+                <div className={styles.projectionSection}>
+                    <h4>⚡ Kraftovervåking</h4>
+                    {currentHourStart !== null ? (
+                        <>
+                            <div className={`${styles.projectionMetric} ${styles[alertLevel]}`}>
+                                <div className={styles.projectionLabel}>Beregnet timesnitt:</div>
+                                <div className={styles.projectionValue}>
+                                    {projectedAverage.toFixed(2)} <span className={styles.projectionUnit}>kW</span>
+                                </div>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Nåværende effekt:</span>
+                                <span className={styles.infoValue}>
+                                    {(liveData.power / 1000).toFixed(2)} kW
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Tid igjen denne timen:</span>
+                                <span className={styles.infoValue}>
+                                    {(() => {
+                                        const now = new Date(liveData.timestamp);
+                                        const minutesRemaining = 59 - now.getMinutes();
+                                        return `${minutesRemaining} min`;
+                                    })()}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Forbruk denne timen:</span>
+                                <span className={styles.infoValue}>
+                                    {((liveData.accumulatedConsumption - accumulatedAtHourStart) * 1000).toFixed(0)} Wh
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Maks effekt rest av timen (for å holde under 10 kW snitt):</span>
+                                <span className={styles.infoValue}>
+                                    {(() => {
+                                        const now = new Date(liveData.timestamp);
+                                        const minutesElapsed = now.getMinutes() + now.getSeconds() / 60;
+                                        const minutesRemaining = 60 - minutesElapsed;
+                                        
+                                        // How much energy can we use in total this hour? 10 kWh
+                                        const maxEnergyThisHour_kWh = 10;
+                                        
+                                        // How much have we already used?
+                                        const E_consumed_kWh = liveData.accumulatedConsumption - accumulatedAtHourStart;
+                                        
+                                        // How much is left?
+                                        const E_remaining_kWh = maxEnergyThisHour_kWh - E_consumed_kWh;
+                                        
+                                        // What's the max power we can use for the remaining time?
+                                        const maxPower_kW = (E_remaining_kWh / (minutesRemaining / 60));
+                                        
+                                        const color = maxPower_kW < 0 ? '#cc0000' : maxPower_kW < 5 ? '#ff8800' : '#00aa00';
+                                        return (
+                                            <span style={{ color, fontWeight: 'bold' }}>
+                                                {maxPower_kW.toFixed(2)} kW
+                                            </span>
+                                        );
+                                    })()}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Timer over 10 kW denne måneden:</span>
+                                <span className={styles.infoValue}>
+                                    <strong>{monthlyViolationCount}/3</strong> {monthlyViolationCount >= 3 && '⚠️ Ekstra gebyr!'}
+                                </span>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ padding: '10px', background: '#fff3cd', borderRadius: '8px' }}>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Database:</span>
+                                <span className={styles.infoValue}>
+                                    {db ? '✅ OK' : '❌ Mangler'}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Timestamp:</span>
+                                <span className={styles.infoValue}>
+                                    {liveData.timestamp ? '✅ ' + liveData.timestamp : '❌ Mangler'}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>AccumulatedConsumption:</span>
+                                <span className={styles.infoValue}>
+                                    {liveData.accumulatedConsumption != null ? '✅ ' + liveData.accumulatedConsumption + ' kWh' : '❌ Mangler'}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Power:</span>
+                                <span className={styles.infoValue}>
+                                    {liveData.power != null ? '✅ ' + liveData.power + ' W' : '❌ Mangler'}
+                                </span>
+                            </div>
+                            <div className={styles.infoRow}>
+                                <span className={styles.infoLabel}>Status:</span>
+                                <span className={styles.infoValue} style={{ color: '#cc6600', fontWeight: 'bold' }}>
+                                    Venter på at alle data skal være tilgjengelige...
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
                 <div className={styles.timestamp}>
                     Oppdatert: {new Date(liveData.timestamp).toLocaleString('no-NO')}
+                </div>
+            </div>
+        );
+    };
+    
+    // Render alert banner based on projection
+    const renderAlertBanner = () => {
+        if (alertLevel === 'none' || !liveData) return null;
+        
+        const alertMessages = {
+            info: {
+                icon: '💛',
+                title: 'Info: Nærmer seg høy belastning',
+                message: `Beregnet timesnitt er ${projectedAverage.toFixed(2)} kW. Du nærmer deg terskelen på 10 kW.`,
+                suggestion: 'Vurder å utsette høyenergiforbruk til neste time.',
+            },
+            warning: {
+                icon: '⚠️',
+                title: 'Advarsel: Høy belastning',
+                message: `Beregnet timesnitt er ${projectedAverage.toFixed(2)} kW. Fare for å overstige 10 kW!`,
+                suggestion: 'Reduser forbruket nå: Stopp oppvaskmaskin, tørketrommel eller lignende.',
+            },
+            critical: {
+                icon: '🔴',
+                title: 'KRITISK: Overskridelse!',
+                message: `Beregnet timesnitt er ${projectedAverage.toFixed(2)} kW. Vil overstige 10 kW grensen!`,
+                suggestion: 'STANS HØYENERGIFORBRUK NÅ! Stopp billadere, varmtvannsberedere og andre store forbrukere umiddelbart.',
+            },
+        };
+        
+        const alert = alertMessages[alertLevel];
+        
+        return (
+            <div className={`${styles.alertBanner} ${styles[`alert${alertLevel.charAt(0).toUpperCase()}${alertLevel.slice(1)}`]}`}>
+                <div className={styles.alertIcon}>{alert.icon}</div>
+                <div className={styles.alertContent}>
+                    <div className={styles.alertTitle}>{alert.title}</div>
+                    <div className={styles.alertMessage}>{alert.message}</div>
+                    <div className={styles.alertSuggestion}>{alert.suggestion}</div>
                 </div>
             </div>
         );
@@ -512,14 +843,25 @@ export default function TibberDashboard() {
                 return 'Ikke tilkoblet';
         }
     };
+    
+    // Get background class based on alert level
+    const getBackgroundClass = () => {
+        if (alertLevel === 'critical') return styles.bgCritical;
+        if (alertLevel === 'warning') return styles.bgWarning;
+        if (alertLevel === 'info') return styles.bgInfo;
+        return styles.bgNormal;
+    };
 
     return (
-        <div className={styles.wrapper}>
+        <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
             <div className={styles.container}>
                 <header className={styles.header}>
                     <h1>⚡ Tibber Data Dashboard</h1>
                     <p>Hent ut data fra Tibber API</p>
                 </header>
+                
+                {/* Alert Banner */}
+                {renderAlertBanner()}
 
                 <div className={styles.apiConfig}>
                     <h2>API-konfigurasjon</h2>
@@ -534,12 +876,25 @@ export default function TibberDashboard() {
                         />
                         <button onClick={saveToken}>Lagre Token</button>
                     </div>
+                    <div className={styles.inputGroup}>
+                        <label htmlFor="homeId">Tibber Home ID:</label>
+                        <input
+                            type="password"
+                            id="homeId"
+                            placeholder="Legg inn din Tibber Home ID her"
+                            value={homeIdInput}
+                            onChange={(e) => setHomeIdInput(e.target.value)}
+                        />
+                        <button onClick={saveHomeId}>Lagre Home ID</button>
+                    </div>
                     <p className={styles.helpText}>
                         Du kan få en demo-token fra <a href="https://developer.tibber.com/" target="_blank" rel="noopener noreferrer">Tibber Developer Portal</a>
                         <br />
                         Demo token: 5K4MVS-OjfWhK_4yrjOlFe1F6kJXPVf7eQYggo8ebAE
                         <br />
                         <strong>Merk:</strong> Uten kundeforhold kan du kun hente live sanntidsdata via websocket.
+                        <br />
+                        Du finner din Home ID i Tibber API eller via GraphQL-spørring.
                     </p>
                 </div>
 
