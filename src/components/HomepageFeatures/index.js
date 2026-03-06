@@ -53,6 +53,16 @@ const FeatureList = [
         My father Sverre Thune has written several books. This page lists them all. 
         </>
       ),    
+    },
+    {
+      title: 'Tibber Dashboard',
+      url: '/tibber',
+      img: "img/erlendthune.webp",
+      description: (
+        <>
+        Monitor your Tibber energy consumption and prices in real-time.
+        </>
+      ),    
     }
 ];
 

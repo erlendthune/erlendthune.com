@@ -74,10 +74,20 @@ const config = {
         },
         items: [
           {
-            type: 'docSidebar',
-            sidebarId: 'productsSidebar',
-            position: 'left',
+            type: 'dropdown',
             label: 'Products',
+            position: 'left',
+            items: [
+              {
+                type: 'docSidebar',
+                sidebarId: 'productsSidebar',
+                label: 'All Products',
+              },
+              {
+                to: '/tibber',
+                label: 'Tibber Dashboard',
+              },
+            ],
           }
         ],
       },

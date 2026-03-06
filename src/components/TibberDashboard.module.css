@@ -1,0 +1,573 @@
+/* Light mode (default) */
+.wrapper {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.header h1 {
+    font-size: 2.5em;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.header p {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.apiConfig {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.apiConfig h2 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.inputGroup {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.inputGroup label {
+    flex: 0 0 100%;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.inputGroup input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.inputGroup button,
+.btn {
+    padding: 12px 24px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.inputGroup button:hover,
+.btn:hover:not(:disabled) {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.inputGroup button:active,
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.helpText {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.6;
+}
+
+.helpText a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.helpText a:hover {
+    text-decoration: underline;
+}
+
+.statusMessage {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.statusMessage.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.statusMessage.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.actionButtons .btn {
+    flex: 1;
+    min-width: 200px;
+}
+
+.btnStop {
+    background: #dc3545;
+}
+
+.btnStop:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.liveStatus {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.statusDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #dc3545;
+    animation: pulse 2s infinite;
+}
+
+.liveStatus.connected .statusDot {
+    background: #28a745;
+}
+
+.liveStatus.connecting .statusDot {
+    background: #ffc107;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.liveCard {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 4px solid #28a745;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.liveCard h3 {
+    color: #28a745;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+.liveGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.liveMetric {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.liveMetricLabel {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.liveMetricValue {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #333;
+}
+
+.liveMetricUnit {
+    font-size: 0.9em;
+    color: #666;
+    margin-left: 5px;
+}
+
+.liveMetric.power .liveMetricValue {
+    color: #667eea;
+}
+
+.liveMetric.voltage .liveMetricValue {
+    color: #f59e0b;
+}
+
+.liveMetric.current .liveMetricValue {
+    color: #10b981;
+}
+
+.liveMetric.cost .liveMetricValue {
+    color: #ef4444;
+}
+
+.timestamp {
+    text-align: center;
+    color: #999;
+    font-size: 0.9em;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.dataSection {
+    margin-bottom: 30px;
+}
+
+.dataSection h2 {
+    font-size: 1.8em;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.results {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    min-height: 200px;
+}
+
+.placeholder {
+    color: #999;
+    text-align: center;
+    padding: 40px;
+    font-style: italic;
+}
+
+.priceCard {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 4px solid #667eea;
+}
+
+.priceCard h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.infoRow:last-child {
+    border-bottom: none;
+}
+
+.infoLabel {
+    font-weight: 600;
+    color: #555;
+}
+
+.infoValue {
+    color: #333;
+}
+
+.priceItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: #f8f9fa;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+
+.priceItem.current {
+    background: #d4edda;
+    border: 2px solid #28a745;
+}
+
+.rawDataSection {
+    margin-top: 30px;
+}
+
+.rawDataSection h3 {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.rawData {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #667eea;
+    font-size: 1.2em;
+}
+
+.loading::after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+.error {
+    color: #dc3545;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Dark mode styles */
+[data-theme='dark'] .container {
+    background: #1e1e1e;
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .header h1 {
+    color: #8b9dff;
+}
+
+[data-theme='dark'] .header p {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .apiConfig {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .apiConfig h2 {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .inputGroup label {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .inputGroup input {
+    background: #333;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+[data-theme='dark'] .inputGroup input:focus {
+    border-color: #8b9dff;
+}
+
+[data-theme='dark'] .helpText {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .helpText a {
+    color: #8b9dff;
+}
+
+[data-theme='dark'] .statusMessage.success {
+    background: #1a4d2e;
+    color: #7ed957;
+    border-color: #2d6a4f;
+}
+
+[data-theme='dark'] .statusMessage.error {
+    background: #4d1a1a;
+    color: #ff6b6b;
+    border-color: #6a2d2d;
+}
+
+[data-theme='dark'] .liveStatus {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .liveCard {
+    background: #2a2a2a;
+    border-left-color: #4ade80;
+}
+
+[data-theme='dark'] .liveCard h3 {
+    color: #4ade80;
+}
+
+[data-theme='dark'] .liveMetric {
+    background: #333;
+}
+
+[data-theme='dark'] .liveMetricLabel {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .liveMetricValue {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .liveMetricUnit {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .liveMetric.power .liveMetricValue {
+    color: #8b9dff;
+}
+
+[data-theme='dark'] .liveMetric.voltage .liveMetricValue {
+    color: #fbbf24;
+}
+
+[data-theme='dark'] .liveMetric.current .liveMetricValue {
+    color: #34d399;
+}
+
+[data-theme='dark'] .liveMetric.cost .liveMetricValue {
+    color: #f87171;
+}
+
+[data-theme='dark'] .timestamp {
+    color: #666;
+}
+
+[data-theme='dark'] .dataSection h2 {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .results {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .placeholder {
+    color: #666;
+}
+
+[data-theme='dark'] .priceCard {
+    background: #2a2a2a;
+    border-left-color: #8b9dff;
+}
+
+[data-theme='dark'] .priceCard h3 {
+    color: #8b9dff;
+}
+
+[data-theme='dark'] .infoRow {
+    border-bottom-color: #333;
+}
+
+[data-theme='dark'] .infoLabel {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .infoValue {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .priceItem {
+    background: #333;
+}
+
+[data-theme='dark'] .priceItem.current {
+    background: #1a4d2e;
+    border-color: #4ade80;
+}
+
+[data-theme='dark'] .rawDataSection h3 {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .rawData {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .loading {
+    color: #8b9dff;
+}
+
+[data-theme='dark'] .error {
+    color: #ff6b6b;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    .header h1 {
+        font-size: 1.8em;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+    }
+
+    .actionButtons .btn {
+        width: 100%;
+    }
+
+    .inputGroup {
+        flex-direction: column;
+    }
+
+    .liveGrid {
+        grid-template-columns: 1fr;
+    }
+}
