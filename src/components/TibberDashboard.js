@@ -839,7 +839,7 @@ export default function TibberDashboard() {
     // Render monitor view if in monitor mode
     if (viewMode === 'monitor') {
         return (
-            <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
+            <div className={`${styles.monitorWrapper} ${getBackgroundClass()}`}>
                 {renderMonitorView()}
             </div>
         );
