@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './TibberDashboard.module.css';
 import * as PowerMonitorDB from './PowerMonitorDB';
+import TibberMonitorView from './TibberMonitorView';
+import TibberAdminView from './TibberAdminView';
 
 const TIBBER_API_URL = 'https://api.tibber.com/v1-beta/gql';
 const TIBBER_WEBSOCKET_URL = 'wss://websocket-api.tibber.com/v1-beta/gql/subscriptions';
@@ -16,6 +18,7 @@ export default function TibberDashboard() {
     const [liveData, setLiveData] = useState(null);
     const [rawData, setRawData] = useState('');
     const [websocketRetryCount, setWebsocketRetryCount] = useState(0);
+    const [availableHomes, setAvailableHomes] = useState([]);
     
     // Power monitoring state
     const [db, setDb] = useState(null);
@@ -131,6 +134,37 @@ export default function TibberDashboard() {
         localStorage.setItem('tibberHomeId', id);
         setHomeId(id);
         showStatus('Home ID lagret!', 'success');
+    };
+
+    const fetchHomeId = async () => {
+        if (!apiToken) {
+            showStatus('Vennligst lagre API token først for å hente fra API', 'error');
+            return;
+        }
+        try {
+            const query = `{
+                viewer {
+                    homes {
+                        id
+                        appNickname
+                        address {
+                            address1
+                        }
+                    }
+                }
+            }`;
+            const data = await callTibberAPI(query);
+            const homes = data?.data?.viewer?.homes;
+            if (homes && homes.length > 0) {
+                setAvailableHomes(homes);
+                showStatus(`Fant ${homes.length} hjem fra oppgitt token.`, 'success');
+            } else {
+                setAvailableHomes([]);
+                showStatus('Fant ingen hjem knyttet til denne kontoen.', 'error');
+            }
+        } catch (error) {
+            // Feilmelding håndteres allerede i callTibberAPI
+        }
     };
 
     const callTibberAPI = async (query) => {
@@ -252,6 +286,7 @@ export default function TibberDashboard() {
                         power
                         lastMeterConsumption
                         accumulatedConsumption
+                        accumulatedConsumptionLastHour
                         accumulatedProduction
                         accumulatedCost
                         accumulatedReward
@@ -399,8 +434,9 @@ export default function TibberDashboard() {
         const minutesElapsed = now.getMinutes() + now.getSeconds() / 60;
         const minutesRemaining = 60 - minutesElapsed;
         
-        // Energy consumed this hour (kWh) - use ref for accurate value
-        const E_consumed_kWh = measurement.accumulatedConsumption - accumulatedAtHourStartRef.current;
+        // Energy consumed this hour (kWh) - use API value if available
+        const computed_kWh = measurement.accumulatedConsumption - accumulatedAtHourStartRef.current;
+        const E_consumed_kWh = measurement.accumulatedConsumptionLastHour ?? computed_kWh;
         const E_consumed_Wh = E_consumed_kWh * 1000; // Convert to Wh
         
         // Current power (convert W to kW)
@@ -581,7 +617,10 @@ export default function TibberDashboard() {
                             <div className={styles.infoRow}>
                                 <span className={styles.infoLabel}>Forbruk denne timen:</span>
                                 <span className={styles.infoValue}>
-                                    {((liveData.accumulatedConsumption - accumulatedAtHourStart) * 1000).toFixed(0)} Wh
+                                    {liveData.accumulatedConsumptionLastHour != null
+                                        ? (liveData.accumulatedConsumptionLastHour * 1000).toFixed(0)
+                                        : ((liveData.accumulatedConsumption - accumulatedAtHourStart) * 1000).toFixed(0)} Wh
+                                    <span style={{ fontSize: '0.8em', marginLeft: '6px', opacity: 0.8 }}>(Vår kalk: {((liveData.accumulatedConsumption - accumulatedAtHourStart) * 1000).toFixed(0)} Wh)</span>
                                 </span>
                             </div>
                             <div className={styles.infoRow}>
@@ -596,7 +635,8 @@ export default function TibberDashboard() {
                                         const maxEnergyThisHour_kWh = 10;
                                         
                                         // How much have we already used?
-                                        const E_consumed_kWh = liveData.accumulatedConsumption - accumulatedAtHourStart;
+                                        const computed_kWh = liveData.accumulatedConsumption - accumulatedAtHourStart;
+                                        const E_consumed_kWh = liveData.accumulatedConsumptionLastHour ?? computed_kWh;
                                         
                                         // How much is left?
                                         const E_remaining_kWh = maxEnergyThisHour_kWh - E_consumed_kWh;
@@ -741,106 +781,21 @@ export default function TibberDashboard() {
         localStorage.setItem('tibberViewMode', 'admin');
     };
     
-    const renderMonitorView = () => {
-        const now = liveData ? new Date(liveData.timestamp) : new Date();
-        const minutesRemaining = liveData ? 59 - now.getMinutes() : 0;
-        
-        // Calculate max allowed power
-        let maxPower_kW = 0;
-        if (liveData && currentHourStart !== null) {
-            const minutesElapsed = now.getMinutes() + now.getSeconds() / 60;
-            const timeRemaining = 60 - minutesElapsed;
-            const maxEnergyThisHour_kWh = 10;
-            const E_consumed_kWh = liveData.accumulatedConsumption - accumulatedAtHourStart;
-            const E_remaining_kWh = maxEnergyThisHour_kWh - E_consumed_kWh;
-            maxPower_kW = (E_remaining_kWh / (timeRemaining / 60));
-        }
-        
-        return (
-            <div className={`${styles.monitorView} ${styles[`monitor${alertLevel.charAt(0).toUpperCase()}${alertLevel.slice(1)}`]}`}>
-                <div className={styles.monitorHeader}>
-                    <h1 className={styles.monitorTitle}>⚡ Kraftovervåking</h1>
-                    <button 
-                        className={styles.adminButton}
-                        onClick={switchToAdminView}
-                    >
-                        ⚙️ Admin
-                    </button>
-                </div>
-                
-                {liveStatus === 'connected' && liveData && currentHourStart !== null ? (
-                    <>
-                        <div className={styles.monitorMainMetric}>
-                            <div className={styles.monitorLabel}>Beregnet timesnitt</div>
-                            <div className={styles.monitorValue}>
-                                {projectedAverage.toFixed(2)}
-                                <span className={styles.monitorUnit}>kW</span>
-                            </div>
-                            <div className={styles.monitorLimit}>Grense: 10 kW</div>
-                        </div>
-                        
-                        <div className={styles.monitorStats}>
-                            <div className={styles.monitorStat}>
-                                <div className={styles.monitorStatLabel}>Nåværende effekt</div>
-                                <div className={styles.monitorStatValue}>
-                                    {(liveData.power / 1000).toFixed(2)} kW
-                                </div>
-                            </div>
-                            
-                            <div className={styles.monitorStat}>
-                                <div className={styles.monitorStatLabel}>Tid igjen</div>
-                                <div className={styles.monitorStatValue}>
-                                    {minutesRemaining} min
-                                </div>
-                            </div>
-                            
-                            <div className={styles.monitorStat}>
-                                <div className={styles.monitorStatLabel}>Maks effekt tillatt</div>
-                                <div className={styles.monitorStatValue} style={{
-                                    color: maxPower_kW < 0 ? '#ff0000' : maxPower_kW < 5 ? '#ff8800' : '#00ff00'
-                                }}>
-                                    {maxPower_kW.toFixed(1)} kW
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className={styles.monitorFooter}>
-                            <div className={styles.monitorViolations}>
-                                <span className={styles.monitorViolationsLabel}>Brudd denne måneden:</span>
-                                <span className={styles.monitorViolationsCount}>
-                                    {monthlyViolationCount}/3
-                                </span>
-                                {monthlyViolationCount >= 3 && (
-                                    <span className={styles.monitorViolationsWarning}>⚠️ Ekstra gebyr!</span>
-                                )}
-                            </div>
-                            
-                            {renderAlertBanner()}
-                        </div>
-                        
-                        <div className={styles.monitorTimestamp}>
-                            Oppdatert: {now.toLocaleTimeString('no-NO')}
-                        </div>
-                    </>
-                ) : (
-                    <div className={styles.monitorConnecting}>
-                        <div className={styles.monitorConnectingIcon}>⚡</div>
-                        <div className={styles.monitorConnectingText}>
-                            {liveStatus === 'connecting' ? 'Kobler til...' : 
-                             liveStatus === 'disconnected' ? 'Starter tilkobling...' :
-                             'Venter på data...'}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     // Render monitor view if in monitor mode
     if (viewMode === 'monitor') {
         return (
             <div className={`${styles.monitorWrapper} ${getBackgroundClass()}`}>
-                {renderMonitorView()}
+                <TibberMonitorView
+                    liveStatus={liveStatus}
+                    liveData={liveData}
+                    currentHourStart={currentHourStart}
+                    accumulatedAtHourStart={accumulatedAtHourStart}
+                    projectedAverage={projectedAverage}
+                    monthlyViolationCount={monthlyViolationCount}
+                    alertLevel={alertLevel}
+                    switchToAdminView={switchToAdminView}
+                    renderAlertBanner={renderAlertBanner}
+                />
             </div>
         );
     }
@@ -848,95 +803,25 @@ export default function TibberDashboard() {
     // Render admin view
     return (
         <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
-            <div className={styles.container}>
-                <header className={styles.header}>
-                    <h1>⚡ Tibber Data Dashboard</h1>
-                    <p>Hent ut data fra Tibber API</p>
-                </header>
-                
-                {/* Alert Banner */}
-                {renderAlertBanner()}
-
-                <div className={styles.apiConfig}>
-                    <h2>API-konfigurasjon</h2>
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="apiToken">Tibber API Token:</label>
-                        <input
-                            type="password"
-                            id="apiToken"
-                            placeholder="Legg inn din Tibber API token her"
-                            value={tokenInput}
-                            onChange={(e) => setTokenInput(e.target.value)}
-                        />
-                        <button onClick={saveToken}>Lagre Token</button>
-                    </div>
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="homeId">Tibber Home ID:</label>
-                        <input
-                            type="password"
-                            id="homeId"
-                            placeholder="Legg inn din Tibber Home ID her"
-                            value={homeIdInput}
-                            onChange={(e) => setHomeIdInput(e.target.value)}
-                        />
-                        <button onClick={saveHomeId}>Lagre Home ID</button>
-                    </div>
-                    <p className={styles.helpText}>
-                        Du kan få en demo-token fra <a href="https://developer.tibber.com/" target="_blank" rel="noopener noreferrer">Tibber Developer Portal</a>
-                        <br />
-                        Demo token: 5K4MVS-OjfWhK_4yrjOlFe1F6kJXPVf7eQYggo8ebAE
-                        <br />
-                        <strong>Merk:</strong> Uten kundeforhold kan du kun hente live sanntidsdata via websocket.
-                        <br />
-                        Du finner din Home ID i Tibber API eller via GraphQL-spørring.
-                    </p>
-                </div>
-
-                {statusMessage.text && (
-                    <div className={`${styles.statusMessage} ${styles[statusMessage.type]}`}>
-                        {statusMessage.text}
-                    </div>
-                )}
-
-                <div className={styles.actionButtons}>
-                    <button
-                        className={styles.btn}
-                        onClick={startLiveData}
-                        disabled={liveStatus !== 'disconnected'}
-                    >
-                        Start Live Strømdata
-                    </button>
-                    <button
-                        className={`${styles.btn} ${styles.btnStop}`}
-                        onClick={stopLiveData}
-                        disabled={liveStatus === 'disconnected'}
-                    >
-                        Stopp Live Data
-                    </button>
-                    <button 
-                        className={`${styles.btn} ${styles.btnMonitor}`}
-                        onClick={switchToMonitorView}
-                    >
-                        📊 Monitor View
-                    </button>
-                </div>
-
-                <div className={styles.dataSection}>
-                    <h2>Live Strømdata</h2>
-                    <div className={`${styles.liveStatus} ${styles[liveStatus]}`}>
-                        <span className={styles.statusDot}></span>
-                        <span className={styles.statusText}>{getLiveStatusText()}</span>
-                    </div>
-                    <div className={styles.results}>
-                        {renderLiveData()}
-                    </div>
-                </div>
-
-                <div className={styles.rawDataSection}>
-                    <h3>Rå API-respons</h3>
-                    <pre className={styles.rawData}>{rawData}</pre>
-                </div>
-            </div>
+            <TibberAdminView
+                tokenInput={tokenInput}
+                setTokenInput={setTokenInput}
+                homeIdInput={homeIdInput}
+                setHomeIdInput={setHomeIdInput}
+                saveToken={saveToken}
+                saveHomeId={saveHomeId}
+                fetchHomeId={fetchHomeId}
+                availableHomes={availableHomes}
+                statusMessage={statusMessage}
+                startLiveData={startLiveData}
+                stopLiveData={stopLiveData}
+                switchToMonitorView={switchToMonitorView}
+                liveStatus={liveStatus}
+                getLiveStatusText={getLiveStatusText}
+                renderLiveData={renderLiveData}
+                renderAlertBanner={renderAlertBanner}
+                rawData={rawData}
+            />
         </div>
     );
 }
