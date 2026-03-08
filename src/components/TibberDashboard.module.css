@@ -648,7 +648,6 @@
 .alertCritical {
     background: #ffe6e6;
     border-left-color: #cc0000;
-    animation: shake 0.5s ease-in-out infinite;
 }
 
 @keyframes shake {
@@ -688,11 +687,12 @@
     font-size: 1.1em;
     margin-bottom: 8px;
     font-weight: 600;
+    color: #000;
 }
 
 .alertSuggestion {
     font-size: 0.95em;
-    color: #555;
+    color: #333;
     font-style: italic;
 }
 
@@ -1150,3 +1150,10 @@
   background: #2d8ebf;
 }
 
+
+.alertCostInfo {
+    font-weight: bold;
+    color: #000000;
+    margin: 10px 0;
+    font-size: 1.1em;
+}

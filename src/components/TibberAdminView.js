@@ -18,7 +18,12 @@ export default function TibberAdminView({
     getLiveStatusText,
     renderLiveData,
     renderAlertBanner,
-    rawData
+    rawData,
+    isEmulating,
+    emulatedPowerInput,
+    updateEmulatedPower,
+    startEmulation,
+    stopEmulation
 }) {
     return (
         <div className={styles.container}>
@@ -111,14 +116,14 @@ export default function TibberAdminView({
                 <button
                     className={styles.btn}
                     onClick={startLiveData}
-                    disabled={liveStatus !== 'disconnected'}
+                    disabled={liveStatus !== 'disconnected' && !isEmulating}
                 >
                     Start Live Strømdata
                 </button>
                 <button
                     className={`${styles.btn} ${styles.btnStop}`}
                     onClick={stopLiveData}
-                    disabled={liveStatus === 'disconnected'}
+                    disabled={liveStatus === 'disconnected' || isEmulating}
                 >
                     Stopp Live Data
                 </button>
@@ -128,6 +133,39 @@ export default function TibberAdminView({
                 >
                     📊 Monitor View
                 </button>
+            </div>
+
+            <div className={styles.emulationSection} style={{ marginTop: '20px', padding: '15px', background: 'rgba(255,165,0,0.1)', borderRadius: '8px', border: '1px solid rgba(255,165,0,0.3)' }}>
+                <h3 style={{ marginTop: 0, color: '#ffb700' }}>🛠️ Simuleringsmodus</h3>
+                <p style={{ fontSize: '0.9em', marginBottom: '15px' }}>Test varslingene ved å injisere fiktivt strømforbruk uten å koble til API-et.</p>
+                <div className={styles.inputGroup} style={{ marginBottom: '15px' }}>
+                    <label htmlFor="emulatedPower">Simulert effekt (Watt):</label>
+                    <input
+                        type="number"
+                        id="emulatedPower"
+                        value={emulatedPowerInput}
+                        onChange={(e) => updateEmulatedPower(e.target.value)}
+                        placeholder="f.eks 15000"
+                        style={{ maxWidth: '200px' }}
+                    />
+                </div>
+                <div className={styles.actionButtons}>
+                    <button
+                        className={styles.btn}
+                        onClick={startEmulation}
+                        disabled={isEmulating || liveStatus === 'connected'}
+                        style={{ background: '#f59e0b', color: 'black' }}
+                    >
+                        ▶️ Start Emulering
+                    </button>
+                    <button
+                        className={`${styles.btn} ${styles.btnStop}`}
+                        onClick={stopEmulation}
+                        disabled={!isEmulating}
+                    >
+                        ⏹️ Stopp Emulering
+                    </button>
+                </div>
             </div>
 
             <div className={styles.dataSection}>

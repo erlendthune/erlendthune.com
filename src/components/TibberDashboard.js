@@ -30,6 +30,18 @@ export default function TibberDashboard() {
     const [measurementCount, setMeasurementCount] = useState(0);
     const [viewMode, setViewMode] = useState('admin'); // 'admin' or 'monitor'
     
+    // Alarm state
+    const [isMuted, setIsMuted] = useState(false);
+    const alarmIntervalRef = useRef(null);
+
+    // Emulation state
+    const [isEmulating, setIsEmulating] = useState(false);
+    const [emulatedPowerInput, setEmulatedPowerInput] = useState('15000');
+    const emulationTimerRef = useRef(null);
+    const emulatedPowerRef = useRef(15000);
+    const emulatedAccumulatedRef = useRef(0);
+    const emulatedAccumulatedLastHourRef = useRef(0);
+    
     const websocketRef = useRef(null);
     const retryTimeoutRef = useRef(null);
     const saveCounterRef = useRef(0); // Batch save every 10 measurements
@@ -104,8 +116,89 @@ export default function TibberDashboard() {
             if (retryTimeoutRef.current) {
                 clearTimeout(retryTimeoutRef.current);
             }
+            if (emulationTimerRef.current) {
+                clearInterval(emulationTimerRef.current);
+            }
         };
     }, []);
+
+    const playAlarmSound = useCallback((level) => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            if (!window._sharedAudioCtx) {
+                window._sharedAudioCtx = new AudioContext();
+            }
+            
+            const ctx = window._sharedAudioCtx;
+            
+            // Browsers often suspend audio contexts created before user interaction.
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            
+            const playBeep = (freq, time, duration, type = 'sine', volume = 0.5) => {
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+                
+                gainNode.gain.setValueAtTime(0, ctx.currentTime + time);
+                gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + time + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                osc.start(ctx.currentTime + time);
+                osc.stop(ctx.currentTime + time + duration);
+            };
+            
+            if (level === 'critical') {
+                // Urgent double-beep (A5 -> C6)
+                playBeep(880, 0, 0.2, 'square', 0.6); 
+                playBeep(1046.50, 0.25, 0.3, 'square', 0.6);
+            } else if (level === 'warning') {
+                // Warning dual-tone (E5)
+                playBeep(659.25, 0, 0.2, 'sine', 0.4);
+                playBeep(659.25, 0.3, 0.3, 'sine', 0.4);
+            } else if (level === 'info') {
+                // Gentle single tone (C5)
+                playBeep(523.25, 0, 0.3, 'sine', 0.2);
+            }
+        } catch(e) {
+            console.warn("Audio not supported");
+        }
+    }, []);
+
+    useEffect(() => {
+        if ((alertLevel === 'critical' || alertLevel === 'warning' || alertLevel === 'info') && !isMuted) {
+            // Clear existing interval if we changed level
+            if (alarmIntervalRef.current) {
+                clearInterval(alarmIntervalRef.current);
+            }
+            
+            playAlarmSound(alertLevel);
+            
+            // Set different intervals based on urgency
+            const intervalMs = alertLevel === 'critical' ? 3000 : alertLevel === 'warning' ? 6000 : 10000;
+            alarmIntervalRef.current = setInterval(() => playAlarmSound(alertLevel), intervalMs);
+        } else {
+            if (alarmIntervalRef.current) {
+                clearInterval(alarmIntervalRef.current);
+                alarmIntervalRef.current = null;
+            }
+        }
+        
+        return () => {
+            if (alarmIntervalRef.current) {
+                clearInterval(alarmIntervalRef.current);
+                alarmIntervalRef.current = null;
+            }
+        };
+    }, [alertLevel, isMuted, playAlarmSound]);
 
     const showStatus = useCallback((text, type) => {
         setStatusMessage({ text, type });
@@ -345,6 +438,10 @@ export default function TibberDashboard() {
     };
 
     const startLiveData = () => {
+        if (isEmulating) {
+            showStatus('Stopp emulering først', 'error');
+            return;
+        }
         if (!apiToken) {
             showStatus('Vennligst legg inn og lagre din API token først', 'error');
             return;
@@ -373,6 +470,74 @@ export default function TibberDashboard() {
         setLiveStatus('disconnected');
         setLiveData(null);
         showStatus('Live data stoppet', 'success');
+    };
+
+    const updateEmulatedPower = (val) => {
+        setEmulatedPowerInput(val);
+        emulatedPowerRef.current = Number(val) || 0;
+    };
+
+    const startEmulation = () => {
+        if (liveStatus !== 'disconnected') {
+            showStatus('Stopp live data først for å starte emulering', 'error');
+            return;
+        }
+
+        setIsEmulating(true);
+        setLiveStatus('connected');
+        showStatus('Emulering startet!', 'success');
+        
+        // Reset accumulations if you want a fresh start
+        emulatedAccumulatedRef.current = 0;
+        emulatedAccumulatedLastHourRef.current = 0;
+        
+        // Push an immediate measurement to make UI update fast
+        pushEmulatedMeasurement();
+
+        emulationTimerRef.current = setInterval(() => {
+            pushEmulatedMeasurement();
+        }, 2000);
+    };
+
+    const pushEmulatedMeasurement = () => {
+        const currentNow = new Date();
+        const power = emulatedPowerRef.current;
+        const energyKwhIn2Seconds = (power / 1000) * (2 / 3600);
+        
+        emulatedAccumulatedRef.current += energyKwhIn2Seconds;
+        
+        const currentHourStart = getHourStartTimestamp(currentNow);
+        if (currentHourStartRef.current !== null && currentHourStartRef.current !== currentHourStart) {
+            emulatedAccumulatedLastHourRef.current = 0;
+        }
+        emulatedAccumulatedLastHourRef.current += energyKwhIn2Seconds;
+        
+        const measurement = {
+            timestamp: currentNow.toISOString(),
+            power: power,
+            accumulatedConsumption: emulatedAccumulatedRef.current,
+            accumulatedConsumptionLastHour: emulatedAccumulatedLastHourRef.current,
+            accumulatedCost: 0,
+            currency: 'NOK',
+            minPower: power,
+            averagePower: power,
+            maxPower: power,
+            voltagePhase1: 230,
+            currentL1: power / 230
+        };
+        
+        handleLiveMeasurement({ liveMeasurement: measurement });
+    };
+
+    const stopEmulation = () => {
+        if (emulationTimerRef.current) {
+            clearInterval(emulationTimerRef.current);
+            emulationTimerRef.current = null;
+        }
+        setIsEmulating(false);
+        setLiveStatus('disconnected');
+        setLiveData(null);
+        showStatus('Emulering stoppet', 'success');
     };
 
     // === POWER MONITORING FUNCTIONS ===
@@ -462,6 +627,9 @@ export default function TibberDashboard() {
             level = 'warning';
         } else if (P_avg > 8.0) {
             level = 'info';
+        }
+        if (level !== 'critical' && alertLevel === 'critical') {
+            setIsMuted(false);
         }
         setAlertLevel(level);
         
@@ -736,8 +904,24 @@ export default function TibberDashboard() {
                 <div className={styles.alertContent}>
                     <div className={styles.alertTitle}>{alert.title}</div>
                     <div className={styles.alertMessage}>{alert.message}</div>
+                    {alertLevel !== 'none' && (
+                        <div className={styles.alertCostInfo}>
+                            Neste trinn for nettleie vil gi ca. 400 kr i ekstra månedsavgift!
+                        </div>
+                    )}
                     <div className={styles.alertSuggestion}>{alert.suggestion}</div>
                 </div>
+                {alertLevel !== 'none' && (
+                    <div className={styles.alertActions}>
+                        <button
+                            className={`${styles.btn} ${styles.btnSmall}`}
+                            onClick={() => setIsMuted(!isMuted)}
+                            style={{ marginLeft: '1rem', backgroundColor: isMuted ? '#6c757d' : '#dc3545', color: 'white' }}
+                        >
+                            {isMuted ? '� Slå på alarmlyd' : '🔇 Slå av alarmlyd'}
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -821,6 +1005,11 @@ export default function TibberDashboard() {
                 renderLiveData={renderLiveData}
                 renderAlertBanner={renderAlertBanner}
                 rawData={rawData}
+                isEmulating={isEmulating}
+                emulatedPowerInput={emulatedPowerInput}
+                updateEmulatedPower={updateEmulatedPower}
+                startEmulation={startEmulation}
+                stopEmulation={stopEmulation}
             />
         </div>
     );
