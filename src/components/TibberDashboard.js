@@ -643,9 +643,6 @@ export default function TibberDashboard() {
             saveCounterRef.current++;
             if (saveCounterRef.current >= 10) {
                 PowerMonitorDB.updateHourlyStats(db, currentHourStartRef.current, newCount, Math.max(projectedAverage, P_avg));
-                if (PowerMonitorDB.recordPowerHistory) {
-                    PowerMonitorDB.recordPowerHistory(db, now.getTime(), measurement.power, P_avg);
-                }
                 PowerMonitorDB.saveDatabaseToLocalStorage(db);
                 saveCounterRef.current = 0;
             }
