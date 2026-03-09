@@ -936,6 +936,20 @@
     margin-bottom: 5px;
     gap: 8px;
     font-size: 0.8em;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+}
+
+.monitorView .alertActions {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.btnSmall {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    border-radius: 4px;
 }
 
 .monitorView .alertIcon {
@@ -950,6 +964,11 @@
 .monitorView .alertMessage {
     font-size: 0.8em;
     margin-bottom: 2px;
+}
+
+.monitorView .alertCostInfo {
+    font-size: 0.8em;
+    margin: 4px 0;
 }
 
 .monitorView .alertSuggestion {
@@ -1033,6 +1052,14 @@
     background: #138496;
 }
 
+.btnHistory {
+    background: #8e44ad;
+}
+
+.btnHistory:hover {
+    background: #732d91;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -1085,7 +1112,7 @@
     }
     
     .monitorStats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: 10px;
     }
     
@@ -1095,6 +1122,104 @@
     
     .monitorViolations {
         font-size: 0.95em;
+    }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+    .monitorView {
+        padding: 2px 10px;
+        justify-content: flex-start;
+        overflow-y: auto;
+    }
+    
+    .monitorHeader {
+        margin-bottom: 2px;
+    }
+    
+    .monitorTitle {
+        font-size: 1.1em;
+    }
+    
+    .adminButton {
+        padding: 3px 8px;
+        font-size: 0.75em;
+    }
+    
+    .monitorMainMetric {
+        padding: 4px;
+        margin-bottom: 2px;
+    }
+    
+    .monitorValue {
+        font-size: 2em;
+        margin-bottom: 0px;
+    }
+    
+    .monitorLabel {
+        font-size: 0.8em;
+        margin-bottom: 0px;
+    }
+    
+    .monitorLimit {
+        font-size: 0.7em;
+        margin-top: 0px;
+        line-height: 1;
+    }
+    
+    .monitorStats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        margin-bottom: 2px;
+    }
+    
+    .monitorStat {
+        padding: 3px 4px;
+    }
+    
+    .monitorStatLabel {
+        font-size: 0.65em;
+        margin-bottom: 0px;
+    }
+    
+    .monitorStatValue {
+        font-size: 1.1em;
+    }
+    
+    .monitorViolations {
+        font-size: 0.8em;
+        padding: 4px;
+        margin-bottom: 2px;
+    }
+    
+    .monitorTimestamp {
+        font-size: 0.7em;
+        margin-top: 0px;
+    }
+    
+    .monitorView .alertBanner {
+        padding: 4px 8px;
+        margin-bottom: 2px;
+    }
+    
+    .monitorView .alertIcon {
+        font-size: 1.2em;
+    }
+
+    .monitorView .alertTitle,
+    .monitorView .alertMessage {
+        font-size: 0.75em;
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+
+    .monitorView .alertSuggestion, 
+    .monitorView .alertCostInfo {
+        display: none;
+    }
+    
+    .monitorView .alertActions .btn {
+        padding: 3px 6px;
+        font-size: 0.75em;
     }
 }
 
