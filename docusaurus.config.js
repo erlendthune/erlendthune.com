@@ -87,6 +87,10 @@ const config = {
                 to: '/tibber',
                 label: 'Tibber Dashboard',
               },
+              {
+                to: '/food-scanner',
+                label: '🍎 Food Scanner',
+              },
             ],
           }
         ],

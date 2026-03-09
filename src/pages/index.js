@@ -16,6 +16,14 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <div className={styles.buttons}>
+          <Link
+            className="button button--secondary button--lg"
+            to="/food-scanner"
+            style={{ margin: '10px' }}>
+            🍎 Try the Food Scanner
+          </Link>
+        </div>
       </div>
     </header>
   );
