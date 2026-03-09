@@ -3,6 +3,7 @@ import styles from './TibberDashboard.module.css';
 import * as PowerMonitorDB from './PowerMonitorDB';
 import TibberMonitorView from './TibberMonitorView';
 import TibberAdminView from './TibberAdminView';
+import TibberHistoryView from './TibberHistoryView';
 
 const TIBBER_API_URL = 'https://api.tibber.com/v1-beta/gql';
 const TIBBER_WEBSOCKET_URL = 'wss://websocket-api.tibber.com/v1-beta/gql/subscriptions';
@@ -438,6 +439,8 @@ export default function TibberDashboard() {
     };
 
     const startLiveData = () => {
+        initAudioContextForMobile();
+        
         if (isEmulating) {
             showStatus('Stopp emulering først', 'error');
             return;
@@ -478,6 +481,8 @@ export default function TibberDashboard() {
     };
 
     const startEmulation = () => {
+        initAudioContextForMobile();
+        
         if (liveStatus !== 'disconnected') {
             showStatus('Stopp live data først for å starte emulering', 'error');
             return;
@@ -638,6 +643,9 @@ export default function TibberDashboard() {
             saveCounterRef.current++;
             if (saveCounterRef.current >= 10) {
                 PowerMonitorDB.updateHourlyStats(db, currentHourStartRef.current, newCount, Math.max(projectedAverage, P_avg));
+                if (PowerMonitorDB.recordPowerHistory) {
+                    PowerMonitorDB.recordPowerHistory(db, now.getTime(), measurement.power, P_avg);
+                }
                 PowerMonitorDB.saveDatabaseToLocalStorage(db);
                 saveCounterRef.current = 0;
             }
@@ -946,11 +954,41 @@ export default function TibberDashboard() {
         return styles.bgNormal;
     };
     
+    const initAudioContextForMobile = () => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            if (!window._sharedAudioCtx) {
+                window._sharedAudioCtx = new AudioContext();
+            }
+            
+            if (window._sharedAudioCtx.state === 'suspended') {
+                window._sharedAudioCtx.resume();
+            }
+            
+            // Play a silent beep immediately on user interaction to unlock audio
+            const tempOsc = window._sharedAudioCtx.createOscillator();
+            const tempGain = window._sharedAudioCtx.createGain();
+            tempGain.gain.value = 0; // Silent
+            tempOsc.connect(tempGain);
+            tempGain.connect(window._sharedAudioCtx.destination);
+            tempOsc.start();
+            tempOsc.stop(window._sharedAudioCtx.currentTime + 0.1);
+        } catch (e) {
+            console.warn("Could not init audio context", e);
+        }
+    };
+
     const switchToMonitorView = () => {
         if (!apiToken || !homeId) {
             showStatus('Vennligst legg inn og lagre API token og Home ID først', 'error');
             return;
         }
+        
+        // Initialize audio on this user interaction for mobile browsers
+        initAudioContextForMobile();
+        
         setViewMode('monitor');
         localStorage.setItem('tibberViewMode', 'monitor');
         
@@ -963,6 +1001,11 @@ export default function TibberDashboard() {
     const switchToAdminView = () => {
         setViewMode('admin');
         localStorage.setItem('tibberViewMode', 'admin');
+    };
+
+    const switchToHistoryView = () => {
+        setViewMode('history');
+        localStorage.setItem('tibberViewMode', 'history');
     };
     
     // Render monitor view if in monitor mode
@@ -984,6 +1027,18 @@ export default function TibberDashboard() {
         );
     }
     
+    // Render history view if in history mode
+    if (viewMode === 'history') {
+        return (
+            <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
+                <TibberHistoryView 
+                    db={db} 
+                    onClose={switchToAdminView} 
+                />
+            </div>
+        );
+    }
+    
     // Render admin view
     return (
         <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
@@ -1000,6 +1055,7 @@ export default function TibberDashboard() {
                 startLiveData={startLiveData}
                 stopLiveData={stopLiveData}
                 switchToMonitorView={switchToMonitorView}
+                switchToHistoryView={switchToHistoryView}
                 liveStatus={liveStatus}
                 getLiveStatusText={getLiveStatusText}
                 renderLiveData={renderLiveData}

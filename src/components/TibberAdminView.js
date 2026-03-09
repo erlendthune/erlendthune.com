@@ -14,6 +14,7 @@ export default function TibberAdminView({
     startLiveData,
     stopLiveData,
     switchToMonitorView,
+    switchToHistoryView,
     liveStatus,
     getLiveStatusText,
     renderLiveData,
@@ -25,6 +26,38 @@ export default function TibberAdminView({
     startEmulation,
     stopEmulation
 }) {
+    const handleCopy = (homeId) => {
+        const onSuccess = () => {
+            const btn = document.getElementById(`copy-btn-${homeId}`);
+            if (btn) {
+                const originalText = btn.innerText;
+                btn.innerText = '✅ Kopiert!';
+                setTimeout(() => { btn.innerText = originalText; }, 2000);
+            }
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(homeId).then(onSuccess);
+        } else {
+            // Fallback for non-secure contexts (like local IP on mobile)
+            const textArea = document.createElement("textarea");
+            textArea.value = homeId;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                onSuccess();
+            } catch (err) {
+                console.error('Fallback copy error', err);
+            }
+            textArea.remove();
+        }
+    };
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -65,24 +98,17 @@ export default function TibberAdminView({
                     <button onClick={fetchHomeId} className={styles.btn} style={{ alignSelf: 'flex-start', marginBottom: '10px' }}>Finn hjem i API</button>
                     {availableHomes && availableHomes.length > 0 && (
                         availableHomes.map((home, index) => {
-                            const name = home.appNickname || home.address?.address1 || `Hjem ${index + 1}`;
+                            const name = home.appNickname || `Hjem ${index + 1}`;
+                            const address = home.address?.address1 || '';
                             return (
                                 <div key={home.id} className={styles.homeItem}>
                                     <div className={styles.homeInfo}>
                                         <div className={styles.homeName}>{name}</div>
+                                        {address && <div className={styles.homeAddress} style={{fontSize: '0.85rem', opacity: 0.8}}>{address}</div>}
                                         <div className={styles.homeIdText}>{home.id}</div>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(home.id).then(() => {
-                                                const btn = document.getElementById(`copy-btn-${home.id}`);
-                                                if (btn) {
-                                                    const originalText = btn.innerText;
-                                                    btn.innerText = '✅ Kopiert!';
-                                                    setTimeout(() => { btn.innerText = originalText; }, 2000);
-                                                }
-                                            });
-                                        }}
+                                        onClick={() => handleCopy(home.id)}
                                         id={`copy-btn-${home.id}`}
                                         className={styles.copyBtn}
                                         title="Kopier Home ID"
@@ -132,6 +158,12 @@ export default function TibberAdminView({
                     onClick={switchToMonitorView}
                 >
                     📊 Monitor View
+                </button>
+                <button 
+                    className={`${styles.btn} ${styles.btnHistory}`}
+                    onClick={switchToHistoryView}
+                >
+                    🕒 Historikk
                 </button>
             </div>
 
