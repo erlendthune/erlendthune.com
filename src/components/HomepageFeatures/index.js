@@ -46,7 +46,7 @@ const FeatureList = [
     },
     {
       title: 'Books',
-      url: 'https://www.erlendthune.com/sverrethune',
+      url: '/sverrethune',
       img: "img/sovellasmall.png",
       description: (
         <>
