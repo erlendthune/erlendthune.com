@@ -26,8 +26,14 @@ export default function ScannerView({ onDetected }) {
       }
     },
     onError(err) {
-      // Don't log normal "NotFoundException" scanning loop errors to user.
-      if (err.name !== 'NotFoundException') {
+      // Ignore normal scanning loop errors (ZXing unable to find/read barcode in current frame)
+      const isScanError = 
+        err.name === 'NotFoundException' || 
+        err.name === 'ChecksumException' || 
+        err.name === 'FormatException' || 
+        (err.message && err.message.includes('No MultiFormat Readers were able to detect'));
+
+      if (!isScanError) {
         if (err.name === 'NotAllowedError') {
           setError('Camera Permission Denied. Please allow access.');
         } else {
