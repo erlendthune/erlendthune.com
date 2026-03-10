@@ -35,6 +35,9 @@ export default function TibberDashboard() {
     const [isMuted, setIsMuted] = useState(false);
     const alarmIntervalRef = useRef(null);
 
+    // Screen blackout state
+    const [isScreenDark, setIsScreenDark] = useState(false);
+
     // Emulation state
     const [isEmulating, setIsEmulating] = useState(false);
     const [emulatedPowerInput, setEmulatedPowerInput] = useState('15000');
@@ -175,6 +178,10 @@ export default function TibberDashboard() {
     }, []);
 
     useEffect(() => {
+        if (alertLevel === 'critical' || alertLevel === 'warning' || alertLevel === 'info') {
+            setIsScreenDark(false);
+        }
+        
         if ((alertLevel === 'critical' || alertLevel === 'warning' || alertLevel === 'info') && !isMuted) {
             // Clear existing interval if we changed level
             if (alarmIntervalRef.current) {
@@ -1005,9 +1012,39 @@ export default function TibberDashboard() {
         localStorage.setItem('tibberViewMode', 'history');
     };
     
+    const handleScreenClick = (e) => {
+        // Only turn off screen if they didn't click inside an interactive element
+        if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('a')) {
+            setIsScreenDark(true);
+        }
+    };
+
+    const renderWithDarkScreen = (content) => (
+        <>
+            {isScreenDark && (
+                <div 
+                    onClick={() => setIsScreenDark(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'black',
+                        zIndex: 9999,
+                        cursor: 'pointer'
+                    }}
+                />
+            )}
+            <div onClick={handleScreenClick} style={{ display: 'contents' }}>
+                {content}
+            </div>
+        </>
+    );
+
     // Render monitor view if in monitor mode
     if (viewMode === 'monitor') {
-        return (
+        return renderWithDarkScreen(
             <div className={`${styles.monitorWrapper} ${getBackgroundClass()}`}>
                 <TibberMonitorView
                     liveStatus={liveStatus}
@@ -1026,7 +1063,7 @@ export default function TibberDashboard() {
     
     // Render history view if in history mode
     if (viewMode === 'history') {
-        return (
+        return renderWithDarkScreen(
             <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
                 <TibberHistoryView 
                     db={db} 
@@ -1037,7 +1074,7 @@ export default function TibberDashboard() {
     }
     
     // Render admin view
-    return (
+    return renderWithDarkScreen(
         <div className={`${styles.wrapper} ${getBackgroundClass()}`}>
             <TibberAdminView
                 tokenInput={tokenInput}
